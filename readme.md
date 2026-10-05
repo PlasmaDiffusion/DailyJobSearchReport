@@ -1,15 +1,25 @@
-Backend: A NodeJS/Express backend uses openAI, google custom search api, and firecrawl. Every there will be automated searches for jobs based on conditions provided (specific companies, job titles, locations, and the user's resume.) The user will send a job search request code as well for later. Additionally instead of the previously mentioned conditions, there can be specific prompt searches for news on any new tech that could be key for software developers to learn.
+Backend: A NodeJS/Express backend that uses neonDB, openAI, google custom search api, and firecrawl. Every there will be automated searches for jobs based on conditions provided (specific companies, job titles, locations, and the user's resume.) The user will send a job search request code as well for later. Additionally instead of the previously mentioned conditions, there can be specific prompt searches for news on any new tech that could be key for software developers to learn or general articles for how the industry is doing.
 
 
 
 Main Plan / Architecture:
 +-----------------------------------------------------------------------------------+
-|                                   DAILY CRON JOB                                  |
+|                        STEP 1: USER INPUT & CONFIGURATION                        |
++-----------------------------------------------------------------------------------+
+| - User enters a Job Search Tab that includes target companies, job titles, locations, key skills, a Job Search ID Key, and a resume     |
+| - Sets toggle flags: strict matching vs. freeform search                          |
+| - Sets daily result limit per tab (e.g., max 10 matches/day)                     |
+| - Configuration is saved via API to DB                                            |
 +-----------------------------------------------------------------------------------+
                                           |
                                           v
 +-----------------------------------------------------------------------------------+
-| STEP 1: Search API (Google Custom Search)                    |
+|                                 DAILY CRON JOB (02:00 AM)                         |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| STEP 2: Search API (Google Custom Search)                    |
 | - Query: "site:greenhouse.io OR site:lever.co OR site:workday.com [Company] [Role]"|
 | - Fetch live posting links & snippets without feeding resume yet
 | - The user sets the amount of results to look for (with a hard limit)              |
@@ -17,15 +27,18 @@ Main Plan / Architecture:
                                           |
                                           v
 +-----------------------------------------------------------------------------------+
-| STEP 2: Scrape Job Details (Optional/Recommended)                                 |
+| STEP 3: Scrape Job Details (Optional/Recommended)                                 |
 | - Pull full job text from returned link using Firecrawl             |
 +-----------------------------------------------------------------------------------+
                                           |
                                           v
 +-----------------------------------------------------------------------------------+
-| STEP 3: OpenAI API Call (Batch or Individual Prompt)                              |
-| - Input: System Prompt + Resume Text + Scraped Job Description                    |
-| - Output: JSON evaluation (Fit Score, Key Gaps, Resume Match Summary, Link)       |
+| STEP 4: OpenAI API Call (Batch or Individual Prompt)                              |
+| - Input: System Prompt + Previous User Input Data (Resume) + Scraped Job Description |
+| - Output: JSON evaluation (Fit Score, Key Gaps, Missing skill keywords for the ATS
+| Resume Match Summary, Link to the job posting)                                    |
+| - Output is saved to the database for the user to claim later, and so there are
+no duplicate results for the next 30 days                                           |
 +-----------------------------------------------------------------------------------+
 
 
@@ -49,7 +62,7 @@ When on a tab, at the top of the screen there will be conditions to set
 -the user's resume
 -the number of jobs the user expects to be returned in a Job Search Report (capped at 20)
 -there's also an alternate news mode (with a radio button toggle) to search for news or articles related to the tech industry
--job search code (this is automatically generated when a Job Search Tab is created and can't be changed)
+-Job Search ID Key (this is automatically generated when a Job Search Tab is created and can't be changed)
 
 After this section there will be a list of Job Search Report results found that day.
 
