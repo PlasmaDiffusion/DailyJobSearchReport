@@ -23,6 +23,7 @@ Main Plan / Architecture:
 | - Query: "site:greenhouse.io OR site:lever.co OR site:workday.com [Company] [Role]"|
 | - Fetch live posting links & snippets without feeding resume yet
 | - The user sets the amount of results to look for (with a hard limit)              |
+| - If there's previous Job Search Report data from the same Job Search Code (saved in step 4) then use it to make sure the same job title and company combinations in results from up to 30 days ago don't show up |
 +-----------------------------------------------------------------------------------+
                                           |
                                           v
