@@ -44,7 +44,7 @@ export function createApp(run: SearchRunner) {
       emit({ type: 'complete', report });
     } catch (error) {
       if (!controller.signal.aborted) {
-        console.error('Search failed:', error.message);
+        console.error('Search failed:', error instanceof Error ? error.message : String(error));
         emit({
           type: 'error',
           message: 'Search failed. Check provider credentials and try again.',

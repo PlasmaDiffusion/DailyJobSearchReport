@@ -83,7 +83,7 @@ test('only recent shown and applied jobs enter history; pruning keeps applicatio
 
 test('legacy local tabs and saved reports migrate without backend reads', () => {
   const saved = state();
-  const values = {
+  const values: Record<string, string> = {
     'djs.tabs': JSON.stringify(saved.tabs.map((tab) => ({
       code: tab.id,
       config: { ...tab.config, enabled: true },
@@ -95,7 +95,7 @@ test('legacy local tabs and saved reports migrate without backend reads', () => 
     }))),
   };
 
-  const loaded = loadState({ getItem: (key) => values[key] || null });
+  const loaded = loadState({ getItem: (key: string) => values[key] || null });
   assert.equal(loaded.tabs[0].id, id);
   assert.equal(loaded.reports[0].tabId, id);
   assert.ok(!('enabled' in loaded.tabs[0].config));

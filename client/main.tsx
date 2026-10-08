@@ -34,7 +34,7 @@ const blank = (): SearchConfig => ({
 /** Owns the active search tab and persists reports in browser storage. */
 function App() {
   const [state, setState] = useState<Backup>(emptyState());
-  const [active, setActive] = useState();
+  const [active, setActive] = useState<string | undefined>(undefined);
   const [form, setForm] = useState<SearchConfig>(blank());
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -43,12 +43,12 @@ function App() {
     message: string;
     current?: number;
     total?: number;
-  }>();
+  } | undefined>(undefined);
   const [usage, setUsage] = useState(0);
   const [prune, setPrune] = useState(false);
   const [remove, setRemove] = useState(false);
-  const [unsaved, setUnsaved] = useState<Report>();
-  const abort = useRef();
+  const [unsaved, setUnsaved] = useState<Report | undefined>(undefined);
+  const abort = useRef<AbortController | undefined>(undefined);
   const importFile = useRef<HTMLInputElement>(null);
 
   function updateUsage() {
@@ -56,6 +56,7 @@ function App() {
       let bytes = 0;
       for (let index = 0; index < localStorage.length; index += 1) {
         const key = localStorage.key(index);
+        if (key === null) continue;
         bytes += (key.length + (localStorage.getItem(key) || '').length) * 2;
       }
       setUsage(bytes);
@@ -80,7 +81,7 @@ function App() {
   }, []);
 
   // Validate each saved state before replacing the browser's current data.
-  function persist(next) {
+  function persist(next: Backup): Backup | null {
     try {
       const checked = backupSchema.parse(next);
       localStorage.setItem('djs.state', JSON.stringify(checked));
@@ -95,7 +96,7 @@ function App() {
       setState(checked);
       updateUsage();
       return checked;
-    } catch (error) {
+    } catch (error: any) {
       const message = error.name === 'ZodError'
         ? 'Data limits exceeded. Export a backup and remove older reports.'
         : 'Browser storage is full or unavailable. Export your data before removing older reports.';
@@ -108,12 +109,10 @@ function App() {
   function save(): { id: string; config: SearchConfig; saved: Backup } {
     const config = configSchema.parse({
       ...form,
-      ...Object.fromEntries(
-        ['companies', 'roles', 'skills', 'locations'].map((key) => [
-          key,
-          form[key].filter((item) => item.trim()),
-        ]),
-      ),
+      companies: form.companies.filter((item) => item.trim()),
+      roles: form.roles.filter((item) => item.trim()),
+      skills: form.skills.filter((item) => item.trim()),
+      locations: form.locations.filter((item) => item.trim()),
     });
     const id = active || crypto.randomUUID();
     const tabs = active
@@ -127,7 +126,7 @@ function App() {
   }
 
   // Switch the visible form to a saved tab or a blank new tab.
-  function select(tab) {
+  function select(tab?: Backup['tabs'][number]) {
     setActive(tab?.id);
     setForm(tab?.config || blank());
     setProgress(undefined);
@@ -164,7 +163,7 @@ function App() {
         if (!active) select(next.tabs[0]);
         setNotice('Backup imported. Existing records were kept; new records were added.');
       }
-    } catch (error) {
+    } catch (error: any) {
       setNotice(error.name === 'ZodError' ? 'Invalid backup. Nothing was imported.' : error.message);
     } finally {
       if (importFile.current) importFile.current.value = '';
@@ -195,10 +194,10 @@ function App() {
       } else {
         setUnsaved(report);
       }
-    } catch (error) {
+    } catch (error: any) {
       const message = controller.signal.aborted
         ? 'Search cancelled. No report was saved.'
-        : error.issues?.map((issue) => issue.message).join('; ') || error.message;
+        : error.issues?.map((issue: { message: string }) => issue.message).join('; ') || error.message;
       setNotice(message);
     } finally {
       setBusy(false);
@@ -292,7 +291,7 @@ function App() {
               <div>
                 <span className="label">Search mode</span>
                 <div className="flex gap-6 py-3">
-                  {['jobs', 'news'].map((mode) => (
+                  {(['jobs', 'news'] as const).map((mode) => (
                     <label key={mode} className="flex items-center gap-2">
                       <input
                         type="radio"
@@ -310,12 +309,12 @@ function App() {
             {form.mode === 'jobs' ? (
               <>
                 <div className="mt-5 grid gap-5 md:grid-cols-2">
-                  {[
+                  {([
                     ['companies', 'Companies'],
                     ['roles', 'Job titles'],
                     ['skills', 'Key skills'],
                     ['locations', 'Locations'],
-                  ].map(([key, label]) => (
+                  ] as const).map(([key, label]) => (
                     <label key={key}>
                       {label}
                       <input
@@ -331,11 +330,11 @@ function App() {
                 </div>
 
                 <div className="my-5 flex flex-wrap gap-6">
-                  {[
+                  {([
                     ['strictCompany', 'Require a listed company'],
                     ['strictRole', 'Require a listed title'],
                     ['strictSkills', 'Require all listed skills'],
-                  ].map(([key, label]) => (
+                  ] as const).map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -350,7 +349,7 @@ function App() {
                 <label>
                   Resume text
                   <textarea
-                    rows="6"
+                    rows={6}
                     value={form.resume}
                     onChange={(event) => change('resume', event.target.value)}
                     placeholder="Paste your resume for fit scores and ATS keyword suggestions"
@@ -365,7 +364,7 @@ function App() {
               <label className="mt-5 block">
                 News search prompt
                 <textarea
-                  rows="4"
+                  rows={4}
                   value={form.prompt}
                   onChange={(event) => change('prompt', event.target.value)}
                   placeholder="New technologies for software developers, or industry trends…"
@@ -389,8 +388,8 @@ function App() {
                   try {
                     save();
                     setNotice('Search settings saved locally.');
-                  } catch (error) {
-                    setNotice(error.issues?.map((issue) => issue.message).join('; ') || error.message);
+    } catch (error: any) {
+                    setNotice(error.issues?.map((issue: { message: string }) => issue.message).join('; ') || error.message);
                   }
                 }}
               >
@@ -546,7 +545,7 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <Routes>
       <Route path="*" element={<App />} />

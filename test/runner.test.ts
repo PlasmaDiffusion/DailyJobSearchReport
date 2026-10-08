@@ -1,7 +1,7 @@
 /** Exercises report orchestration, filtering, streaming, and cancellation. */
-import { test } from 'node:test';
+import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeRunner } from '../server/runner.js';
+import { makeRunner, requestSchema, type RunnerProviders } from '../server/runner.js';
 import { configSchema } from '../server/config.js';
 import { createApp } from '../server/app.js';
 
@@ -23,7 +23,7 @@ const job = {
 };
 
 function fixture() {
-  const providers = {
+  const providers: RunnerProviders = {
     search: async () => [{
       url: 'https://example.com/job',
       title: 'Engineer',
@@ -35,16 +35,18 @@ function fixture() {
 
   return {
     providers,
-    input: { tabId, config, history: [] },
+    input: requestSchema.parse({ tabId, config, history: [] }),
     run: () => makeRunner(providers),
   };
 }
 
-async function serve(t, run) {
+async function serve(t: TestContext, run: ReturnType<typeof makeRunner>): Promise<string> {
   const server = createApp(run).listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   t.after(() => new Promise((resolve) => server.close(resolve)));
-  return `http://localhost:${server.address().port}`;
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Server did not bind a TCP port');
+  return `http://localhost:${address.port}`;
 }
 
 test('HTTP streams searching before provider finishes and then sends report', async (t) => {
@@ -58,12 +60,12 @@ test('HTTP streams searching before provider finishes and then sends report', as
     body: JSON.stringify(f.input),
   });
 
-  assert.match(response.headers.get('content-type'), /ndjson/);
-  const reader = response.body.getReader();
+  assert.match(response.headers.get('content-type') || '', /ndjson/);
+  const reader = response.body!.getReader();
   const first = await reader.read();
   assert.match(new TextDecoder().decode(first.value), /"stage":"searching"/);
 
-  release([{ url: 'https://example.com/job', title: 'Engineer', snippet: 'Acme' }]);
+  release!([{ url: 'https://example.com/job', title: 'Engineer', snippet: 'Acme' }]);
   let rest = '';
   while (true) {
     const chunk = await reader.read();
@@ -71,7 +73,7 @@ test('HTTP streams searching before provider finishes and then sends report', as
     rest += new TextDecoder().decode(chunk.value);
   }
 
-  const events = rest.trim().split('\n').map(JSON.parse);
+  const events = rest.trim().split('\n').map((line) => JSON.parse(line));
   assert.deepEqual(
     events.filter((event) => event.type === 'progress').map((event) => event.stage),
     ['scraping', 'generating'],
@@ -124,7 +126,7 @@ test('provider failure produces an error event without a completed report', asyn
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(f.input),
   });
-  const events = (await response.text()).trim().split('\n').map(JSON.parse);
+  const events = (await response.text()).trim().split('\n').map((line) => JSON.parse(line));
 
   assert.equal(events.at(-1).type, 'error');
   assert.ok(!events.some((event) => event.type === 'complete'));
@@ -150,7 +152,10 @@ test('aborted runner stops before next paid call', async () => {
 
 test('invalid configuration is rejected before stream or provider call', async (t) => {
   let invoked = false;
-  const base = await serve(t, () => { invoked = true; });
+  const base = await serve(t, async () => {
+    invoked = true;
+    throw new Error('Runner should not be invoked for an invalid request');
+  });
   const response = await fetch(`${base}/api/search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -175,9 +180,10 @@ test('news deduplicates URLs rather than company/title', async () => {
 
 test('closing the HTTP stream aborts in-flight provider work', async (t) => {
   const f = fixture();
-  let markAborted;
-  const cancelled = new Promise((resolve) => { markAborted = resolve; });
+  let markAborted: () => void = () => {};
+  const cancelled = new Promise<void>((resolve) => { markAborted = resolve; });
   f.providers.search = async (config, signal) => new Promise((resolve, reject) => {
+    if (!signal) throw new Error('Expected an abort signal');
     signal.addEventListener('abort', () => {
       markAborted();
       reject(signal.reason);
@@ -190,7 +196,7 @@ test('closing the HTTP stream aborts in-flight provider work', async (t) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(f.input),
   });
-  const reader = response.body.getReader();
+  const reader = response.body!.getReader();
   await reader.read();
   await reader.cancel();
 

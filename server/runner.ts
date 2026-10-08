@@ -4,9 +4,9 @@ import { z } from 'zod';
 import { pairKey, strictMatch, configSchema, type SearchConfig } from './config.js';
 import type { Job } from '../shared/history.js';
 
-type SearchItem = { title: string; url: string; snippet: string };
+export type SearchItem = { title: string; url: string; snippet: string };
 type Evaluation = Omit<Job, 'url'>;
-type RunnerProviders = {
+export type RunnerProviders = {
   search(config: SearchConfig, signal?: AbortSignal): Promise<SearchItem[]>;
   scrape(url: string, signal?: AbortSignal): Promise<string | null>;
   evaluate(

@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { search } from '../client/search.js';
+import { configSchema } from '../server/config.js';
 
 const report = {
   id: '159f4603-eaee-47c4-bd9a-a43308e80546',
@@ -10,6 +11,11 @@ const report = {
   status: 'completed',
   results: [],
   warnings: [],
+};
+const input = {
+  tabId: report.tabId,
+  config: configSchema.parse({ title: 'Jobs', roles: ['Engineer'] }),
+  history: [],
 };
 
 test('client decodes split UTF-8 progress and completed report chunks', async (t) => {
@@ -24,8 +30,8 @@ test('client decodes split UTF-8 progress and completed report chunks', async (t
     },
   })));
 
-  const progress = [];
-  assert.deepEqual(await search({}, (event) => progress.push(event)), report);
+  const progress: Array<{ message: string }> = [];
+  assert.deepEqual(await search(input, (event) => progress.push(event)), report);
   assert.equal(progress[0].message, 'Searching…');
 });
 
@@ -36,10 +42,10 @@ test('client fails on stream errors and premature termination', async (t) => {
     async () => new Response('{"type":"error","message":"Failed"}\n'),
   );
 
-  await assert.rejects(search({}, () => {}), /Failed/);
+  await assert.rejects(search(input, () => {}), /Failed/);
 
   mocked.mock.mockImplementation(async () => new Response(
     '{"type":"progress","message":"Searching"}\n',
   ));
-  await assert.rejects(search({}, () => {}), /before the report was complete/);
+  await assert.rejects(search(input, () => {}), /before the report was complete/);
 });

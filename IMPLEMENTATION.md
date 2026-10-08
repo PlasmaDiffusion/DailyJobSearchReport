@@ -4,12 +4,12 @@ This short map points to the main parts of the codebase and its verification com
 
 The current architecture, setup, manual streaming API, local job/application history, and JSON backup format are documented in [readme.md](readme.md).
 
-- Backend entry point: `server/index.js`.
-- Streaming endpoint: `server/app.js`.
-- Stateless search pipeline: `server/runner.js`.
-- Provider adapters: `server/providers.js`.
-- Local-data and backup validation: `shared/history.js`.
-- Frontend stream reader: `client/search.js`.
-- React interface: `client/main.jsx`.
+- Backend entry point: `server/index.ts`.
+- Streaming endpoint: `server/app.ts`.
+- Stateless search pipeline: `server/runner.ts`.
+- Provider adapters: `server/providers.ts`.
+- Local-data and backup validation: `shared/history.ts`.
+- Frontend stream reader: `client/search.ts`.
+- React interface: `client/main.tsx`.
 
-Use `npm test` and `npm run build` to verify changes.
+The application and tests use TypeScript. Use `npm run typecheck`, `npm test`, and `npm run build` to verify changes.

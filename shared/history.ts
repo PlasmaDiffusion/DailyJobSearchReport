@@ -39,30 +39,38 @@ export const backupSchema = z.object({
   reports: z.array(reportSchema),
   applications: z.array(application),
 }).superRefine((data, context) => {
-  const identities = [
-    ['tabs', (item) => item.id],
-    ['reports', (item) => item.id],
-    ['applications', (item) => item.url],
-  ];
-
-  for (const [key, identity] of identities) {
-    const values = data[key].map(identity);
+  const addDuplicateIssue = (key: string, values: string[]) => {
     if (new Set(values).size !== values.length) {
       context.addIssue({ code: 'custom', path: [key], message: 'Duplicate records in backup' });
     }
-  }
+  };
+
+  addDuplicateIssue('tabs', data.tabs.map((item) => item.id));
+  addDuplicateIssue('reports', data.reports.map((item) => item.id));
+  addDuplicateIssue('applications', data.applications.map((item) => item.url));
 });
 
 export type Job = z.infer<typeof jobSchema>;
 export type Report = z.infer<typeof reportSchema>;
 export type Backup = z.infer<typeof backupSchema>;
+export type HistoryEntry = {
+  title: string;
+  company: string;
+  url: string;
+  recordedAt: string;
+};
 
-export const emptyState = () => ({ version: 2, tabs: [], reports: [], applications: [] });
+export const emptyState = (): Backup => ({
+  version: 2,
+  tabs: [],
+  reports: [],
+  applications: [],
+});
 
 /** Merge a validated backup while keeping records already present locally. */
-export function mergeBackup(current, incoming) {
+export function mergeBackup(current: Backup, incoming: unknown): Backup {
   const parsed = backupSchema.parse(incoming);
-  const merge = (existing, added, key) => [
+  const merge = <Item>(existing: Item[], added: Item[], key: (item: Item) => string): Item[] => [
     ...existing,
     ...added.filter((item) => !existing.some((old) => key(old) === key(item))),
   ];
@@ -76,9 +84,9 @@ export function mergeBackup(current, incoming) {
 }
 
 /** Collect recent shown and applied jobs to exclude from a new search. */
-export function recentHistory(state, tabId, now = Date.now()) {
+export function recentHistory(state: Backup, tabId: string, now = Date.now()): HistoryEntry[] {
   const cutoff = now - DAYS_30;
-  const isRecent = (value) => Date.parse(value) > cutoff && Date.parse(value) <= now;
+  const isRecent = (value: string) => Date.parse(value) > cutoff && Date.parse(value) <= now;
   const shownJobs = state.reports
     .filter((report) => report.tabId === tabId && isRecent(report.createdAt))
     .flatMap((report) => report.results.map((job) => ({
@@ -102,7 +110,7 @@ export function recentHistory(state, tabId, now = Date.now()) {
 }
 
 /** Remove reports outside the 30-day retention window. */
-export function pruneReports(state, now = Date.now()) {
+export function pruneReports(state: Backup, now = Date.now()): Backup {
   return {
     ...state,
     reports: state.reports.filter((report) => Date.parse(report.createdAt) > now - DAYS_30),
@@ -110,13 +118,22 @@ export function pruneReports(state, now = Date.now()) {
 }
 
 /** Load current browser data or migrate records saved by the legacy app. */
-export function loadState(storage) {
+export function loadState(storage: Pick<Storage, 'getItem'>): Backup {
   const raw = storage.getItem('djs.state');
   if (raw) return backupSchema.parse(JSON.parse(raw));
 
-  const tabs = JSON.parse(storage.getItem('djs.tabs') || '[]')
+  const tabs = (JSON.parse(storage.getItem('djs.tabs') || '[]') as Array<{
+    code: string;
+    config: z.input<typeof configSchema>;
+  }>)
     .map((tab) => ({ id: tab.code, config: tab.config }));
-  const reports = JSON.parse(storage.getItem('djs.reports') || '[]')
+  const reports = (JSON.parse(storage.getItem('djs.reports') || '[]') as Array<{
+    id: string;
+    code: string;
+    created_at: string;
+    results: Job[];
+    warnings?: string[];
+  }>)
     .map((report) => ({
       id: report.id,
       tabId: report.code,

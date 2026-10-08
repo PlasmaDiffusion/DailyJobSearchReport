@@ -60,7 +60,7 @@ export function strictMatch(config: SearchConfig, _result: unknown, text: string
 export function queryFor(config: SearchConfig): string {
   if (config.mode === 'news') return config.prompt;
 
-  const group = (items) => items.length
+  const group = (items: string[]) => items.length
     ? `(${items.map((item) => `"${item.replaceAll('"', '')}"`).join(' OR ')})`
     : '';
 

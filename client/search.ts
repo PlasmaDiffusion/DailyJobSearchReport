@@ -35,7 +35,7 @@ export async function search(
 
   if (!response.ok) {
     const error = await response.json();
-    const details = error.details?.map((issue) => issue.message).join('; ');
+    const details = error.details?.map((issue: { message: string }) => issue.message).join('; ');
     throw new Error(details || error.error || 'Search request failed');
   }
   if (!response.body) throw new Error('Streaming is unavailable');

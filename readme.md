@@ -2,7 +2,7 @@
 
 This guide explains the app's behavior, setup, API, and local data handling.
 
-A personal job-search and tech-news app built with React, React Router, Tailwind CSS, and a Node.js/Express backend. Search manually when you are ready. All persistent user data lives in the browser's local storage; the interface runs one search at a time and the backend retains no user records.
+A personal job-search and tech-news app built with TypeScript, React, React Router, Tailwind CSS, and a Node.js/Express backend. Search manually when you are ready. All persistent user data lives in the browser's local storage; the interface runs one search at a time and the backend retains no user records.
 
 ## How it works
 
@@ -55,7 +55,7 @@ Existing locally stored tabs and locally saved reports from the previous app ver
 
 ## Setup
 
-Use **Node.js 24**.
+Use **Node.js 24**. The application, tests, and Vite configuration are written in TypeScript. `tsx` runs the backend and tests, while Vite compiles the browser client.
 
 ```sh
 npm ci
@@ -74,6 +74,8 @@ npm start
 ```
 
 Express serves the built interface and API from the same origin. No database connection, migration command, or scheduled task is required.
+
+Run `npm run typecheck` to check TypeScript without creating a build.
 
 ### Environment variables
 

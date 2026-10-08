@@ -4,19 +4,22 @@ import { queryFor, type SearchConfig } from './config.js';
 import type { Job } from '../shared/history.js';
 
 type SearchItem = { title: string; url: string; snippet: string };
+type FirecrawlResult = { title: string; url: string; description?: string };
 type Evaluation = Omit<Job, 'url'>;
 
 /** Fetch JSON with a bounded timeout and report provider HTTP failures. */
-async function json(url, options = {}) {
+async function json(url: string | URL, options: RequestInit = {}): Promise<any> {
   const timeout = AbortSignal.timeout(45000);
-  const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+  const signal = options.signal instanceof AbortSignal
+    ? AbortSignal.any([options.signal, timeout])
+    : timeout;
   const response = await fetch(url, { ...options, signal });
 
   if (!response.ok) throw new Error(`Provider returned HTTP ${response.status}`);
   return response.json();
 }
 
-function requireEnv(...keys) {
+function requireEnv(...keys: string[]): void {
   for (const key of keys) {
     if (!process.env[key]) throw new Error(`Missing ${key}`);
   }
@@ -63,7 +66,7 @@ export const providers = {
       });
 
       if (!result.success) throw new Error('Search failed');
-      return (result.data?.web || []).map((item) => ({
+      return (result.data?.web || []).map((item: FirecrawlResult) => ({
         title: item.title,
         url: item.url,
         snippet: item.description || '',
@@ -89,7 +92,7 @@ export const providers = {
       };
 
       for (const [key, value] of Object.entries(params)) {
-        url.searchParams.set(key, value);
+        url.searchParams.set(key, String(value));
       }
 
       const data = await json(url, { signal });

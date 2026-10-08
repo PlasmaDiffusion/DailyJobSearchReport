@@ -1,5 +1,5 @@
 /** Verifies provider request construction, pagination, and response validation. */
-import { test } from 'node:test';
+import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { providers } from '../server/providers.js';
 import { configSchema } from '../server/config.js';
@@ -11,8 +11,8 @@ const config = configSchema.parse({
   resume: 'PRIVATE',
 });
 
-function env(t, values) {
-  const previous = {};
+function env(t: TestContext, values: Record<string, string | undefined>) {
+  const previous: Record<string, string | undefined> = {};
 
   for (const [key, value] of Object.entries(values)) {
     previous[key] = process.env[key];
@@ -28,15 +28,15 @@ function env(t, values) {
   });
 }
 
-function response(data) {
+function response(data: unknown) {
   return { ok: true, json: async () => data };
 }
 
 test('SerpApi defaults, paginates to 20 and does not send resume', async (t) => {
   env(t, { SERPAPI_API_KEY: 'test', SEARCH_PROVIDER: undefined });
-  const calls = [];
+  const calls: URL[] = [];
 
-  t.mock.method(global, 'fetch', async (url) => {
+  t.mock.method(global, 'fetch', async (url: URL) => {
     calls.push(url);
     return response({
       search_metadata: { status: 'Success' },
@@ -109,7 +109,7 @@ test('SerpApi JSON errors and HTTP errors fail the run', async (t) => {
   }));
 
   await assert.rejects(providers.search(config), /SerpApi search failed/);
-  fetch.mock.mockImplementation(async () => ({ ok: false, status: 429 }));
+  fetch.mock.mockImplementation(async () => ({ ok: false, status: 429 } as Response));
   await assert.rejects(providers.search(config), /HTTP 429/);
 });
 
@@ -123,7 +123,7 @@ test('SerpApi credentials are required and removed Google option is rejected', a
 
 test('news prompts use SerpApi without resume or job-board filters', async (t) => {
   env(t, { SERPAPI_API_KEY: 'test', SEARCH_PROVIDER: 'serpapi' });
-  t.mock.method(global, 'fetch', async (url) => {
+  t.mock.method(global, 'fetch', async (url: URL) => {
     assert.equal(url.searchParams.get('q'), 'New developer technologies');
     assert.ok(!url.toString().includes('PRIVATE'));
     return response({ organic_results: [] });
@@ -134,8 +134,8 @@ test('news prompts use SerpApi without resume or job-board filters', async (t) =
 
 test('Firecrawl search maps v2 web results', async (t) => {
   env(t, { SEARCH_PROVIDER: 'firecrawl', FIRECRAWL_API_KEY: 'test' });
-  t.mock.method(global, 'fetch', async (url, options) => {
-    assert.equal(JSON.parse(options.body).limit, 20);
+  t.mock.method(global, 'fetch', async (url: URL, options?: RequestInit) => {
+    assert.equal(JSON.parse(String(options?.body)).limit, 20);
     return response({
       success: true,
       data: { web: [{ title: 'Job', url: 'https://example.com', description: 'Engineer' }] },
@@ -151,8 +151,8 @@ test('Firecrawl search maps v2 web results', async (t) => {
 
 test('structured evaluations reject invalid scores', async (t) => {
   env(t, { OPENAI_API_KEY: 'test' });
-  t.mock.method(global, 'fetch', async (url, options) => {
-    const body = JSON.parse(options.body);
+  t.mock.method(global, 'fetch', async (url: URL, options?: RequestInit) => {
+    const body = JSON.parse(String(options?.body));
     assert.equal(body.response_format.type, 'json_schema');
     return response({
       choices: [{
@@ -171,5 +171,9 @@ test('structured evaluations reject invalid scores', async (t) => {
     });
   });
 
-  await assert.rejects(providers.evaluate(config, { title: 'Job' }, 'text'));
+  await assert.rejects(providers.evaluate(config, {
+    title: 'Job',
+    url: 'https://example.com/job',
+    snippet: 'Job',
+  }, 'text'));
 });

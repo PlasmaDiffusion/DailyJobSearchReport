@@ -10,18 +10,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "express": "^5.1.0",
     "dotenv": "^17.2.3",
-    "zod": "^4.1.12",
+    "express": "^5.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.4"
+    "react-router-dom": "^7.9.4",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "vite": "^7.1.9",
-    "@vitejs/plugin-react": "^5.0.4",
-    "tailwindcss": "^4.1.14",
     "@tailwindcss/vite": "^4.1.14",
-    "concurrently": "^9.2.1"
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "concurrently": "^9.2.1",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^7.1.9"
   }
 }
