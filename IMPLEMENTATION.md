@@ -1,5 +1,7 @@
 # Implementation guide
 
+This short map points to the main parts of the codebase and its verification commands.
+
 The current architecture, setup, manual streaming API, local job/application history, and JSON backup format are documented in [readme.md](readme.md).
 
 - Backend entry point: `server/index.js`.

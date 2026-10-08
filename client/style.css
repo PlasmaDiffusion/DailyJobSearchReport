@@ -1,3 +1,4 @@
+/* Adds the app's shared form, button, panel, and focus styles on top of Tailwind. */
 @import "tailwindcss";
 @layer base {
  body { font-family: Inter, system-ui, sans-serif; }

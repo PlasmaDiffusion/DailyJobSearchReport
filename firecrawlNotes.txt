@@ -1,3 +1,5 @@
+Purpose: notes on Firecrawl's role, fallback behavior, and current implementation limits.
+
 Firecrawl is used to read full job/article pages as Markdown. Without a Firecrawl API key, the app evaluates search snippets. A failed scrape also falls back to the snippet and adds a warning to the completed report.
 
 SEARCH_PROVIDER=firecrawl optionally uses Firecrawl for web search as an alternative to SerpApi. Search and scrape usage may consume separate credits. Check your provider dashboard for current pricing and quota; previous cost estimates are no longer applicable.

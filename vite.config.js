@@ -1,3 +1,4 @@
+/** Configures the React/Tailwind build and proxies API calls to Express. */
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwind from '@tailwindcss/vite';

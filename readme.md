@@ -1,5 +1,7 @@
 # Daily Job Search Report
 
+This guide explains the app's behavior, setup, API, and local data handling.
+
 A personal job-search and tech-news app built with React, React Router, Tailwind CSS, and a Node.js/Express backend. Search manually when you are ready. All persistent user data lives in the browser's local storage; the interface runs one search at a time and the backend retains no user records.
 
 ## How it works
