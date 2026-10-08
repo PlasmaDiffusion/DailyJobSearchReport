@@ -1,74 +1,138 @@
-Backend: A NodeJS/Express backend that uses neonDB, openAI, SerpApi, and firecrawl. Every there will be automated searches for jobs based on conditions provided (specific companies, job titles, locations, and the user's resume.) The user will send a job search request code as well for later. Additionally instead of the previously mentioned conditions, there can be specific prompt searches for news on any new tech that could be key for software developers to learn or general articles for how the industry is doing.
+# Daily Job Search Report
 
+A personal job-search and tech-news app built with React, React Router, Tailwind CSS, and a Node.js/Express backend. Search manually when you are ready. All persistent user data lives in the browser's local storage; the interface runs one search at a time and the backend retains no user records.
 
+## How it works
 
-Main Plan / Architecture:
-+-----------------------------------------------------------------------------------+
-|                        STEP 1: USER INPUT & CONFIGURATION                        |
-+-----------------------------------------------------------------------------------+
-| - User enters a Job Search Tab that includes target companies, job titles, locations, key skills, a Job Search ID Key, and a resume     |
-| - Sets toggle flags: strict matching vs. freeform search                          |
-| - Sets daily result limit per tab (e.g., max 10 matches/day)                     |
-| - Configuration is saved via API to DB                                            |
-+-----------------------------------------------------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|                                 DAILY CRON JOB (02:00 AM)                         |
-+-----------------------------------------------------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-| STEP 2: Search API (SerpApi)                    |
-| - Query: "site:greenhouse.io OR site:lever.co OR site:workday.com [Company] [Role]"|
-| - Fetch live posting links & snippets without feeding resume yet
-| - The user sets the amount of results to look for (with a hard limit)              |
-| - If there's previous Job Search Report data from the same Job Search Code (saved in step 4) then use it to make sure the same job title and company combinations in results from up to 30 days ago don't show up |
-+-----------------------------------------------------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-| STEP 3: Scrape Job Details (Optional/Recommended)                                 |
-| - Pull full job text from returned link using Firecrawl             |
-+-----------------------------------------------------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-| STEP 4: OpenAI API Call (Batch or Individual Prompt)                              |
-| - Input: System Prompt + Previous User Input Data (Resume) + Scraped Job Description |
-| - Output: JSON evaluation (Fit Score, Key Gaps, Missing skill keywords for the ATS
-| Resume Match Summary, Link to the job posting)                                    |
-| - Output is saved to the database for the user to claim later, and so there are
-no duplicate results for the next 30 days                                           |
-+-----------------------------------------------------------------------------------+
+1. Create a search tab and save its criteria locally.
+2. Click **Search now**. The browser sends the criteria, resume (for job evaluation), and recent shown/applied job history to the backend.
+3. **SerpApi** searches for posting links and snippets. Your resume is not sent to the search provider.
+4. **Firecrawl** optionally reads full posting text. If unavailable or a scrape fails, the backend uses the search snippet instead.
+5. **OpenAI** evaluates job fit, gaps, ATS keywords, and resume matches, or summarizes news/articles.
+6. The backend streams progress updates and the completed report through the same request. The browser saves the completed report locally.
 
+Progress messages include **Searching with SerpApi…**, **Reading postings with Firecrawl…**, and **Generating your report with OpenAI…**, with per-candidate progress counts. Scraping and evaluation alternate as each candidate is processed. The UI also provides **Cancel search**; cancellation or closing the connection stops further provider work. Provider work already completed may still incur charges.
 
+## Search tabs
 
-After this main flow there will be a Job Search Report of all job titles that were found that day with links to them and a brief description of them, and any notable ways they match to your resume. This can be saved to the backend database with neonDB and fetched on the frontend using a job search code the user initially provided.
+Each tab has a locally generated immutable UUID and a user-chosen title. It stores:
 
+- Job mode or tech-news/article mode.
+- Target companies, job titles, skills, and locations.
+- Strict flags requiring any listed company, any listed title, or all listed skills.
+- Resume text for job mode, or a freeform prompt for news mode.
+- A candidate limit from **1 to 20**.
 
-Frontend:
-React app (with react router and tailwind)
+Locations guide the query; they are not a strict filter. Candidate limits bound provider work. Duplicate removal and strict filters may return fewer accepted results. Save settings before switching tabs; unsaved edits are drafts.
 
-The UI will be a page with "Job Search Tabs" at the bottom that list these conditions, and a + to make a new tab (mimicking tabs in a browser). The tab text will be a title of the user's choosing.
+## Shown jobs and application history
 
+These are separate records:
 
-When on a tab, at the top of the screen there will be conditions to set
+- **Shown jobs:** results in saved reports for the current tab.
+- **Applied jobs:** jobs explicitly marked using **Mark as applied**, with an application timestamp. Finding a job does not count as applying. Use **Applied — undo** or **Undo applied** to correct a record.
 
--specific companies
--job titles
--specific skills the job titles should list
--option to ONLY show results that contain the company, or specific skills, or specific job title (if unchecked it's much more free form)
--locations
--the user's resume
--the number of jobs the user expects to be returned in a Job Search Report (capped at 20)
--there's also an alternate news mode (with a radio button toggle) to search for news or articles related to the tech industry
--Job Search ID Key (this is automatically generated when a Job Search Tab is created and can't be changed)
+Each search sends shown jobs from its tab and applied jobs across all tabs from the preceding **30 days**. The backend excludes matching URLs and normalized job-title/company pairs, including duplicates within the new report. History older than 30 days does not exclude a posting. News mode excludes repeated URLs only.
 
-After this section there will be a list of Job Search Report results found that day.
+Known URLs are skipped before scraping. Title/company pair checks happen after OpenAI extracts those fields, so a duplicate on a different URL can still incur evaluation costs. History sent per request is bounded to the most recent 2,000 records.
 
-Persistent Front End Data:
+## Local storage and JSON export/import
 
-Job Search Tabs will get saved to local storage.
+Tabs, resumes, completed reports, and application history are stored locally under `djs.state`. The storage indicator estimates UTF-16 bytes used by this origin's local storage, not the browser's total available quota.
 
-At the end of the job report you have the option to save all the output Job Search Reports text/json to local storage. There will be something on the site at the far top right that says how much data has been used up in the local storage for this website. After the user manually clicks "Delete older job search reports 30+ days old" and hits confirm in a modal, all saved Job Search Reports are automatically deleted if they were created 30 days ago or longer.
+- **Export JSON** downloads `daily-job-search-backup.json`, a versioned backup containing **all tabs, resumes, reports, and application history**.
+- **Import JSON** validates a backup before merging it. Existing tab/report IDs and applied-job URLs are kept; missing records are added. Import does not overwrite existing records.
+- Invalid files, unsafe posting links, unsupported backup versions, and files larger than 5 MB are rejected without importing any records.
+- **Delete reports 30+ days old** opens a confirmation dialog and removes only reports at least 30 days old. Tabs and application history are kept.
+- Deleting a tab removes its reports after confirmation, while keeping application history.
+- If storage fills during a search, the completed report stays visible in memory and is included in Export JSON. Export it before leaving that tab or starting another search.
+
+Browser storage does not sync across devices and can be erased by clearing site data. Export/import provides backup and transfer between browsers. Backups contain resume text and should be kept private.
+
+Existing locally stored tabs and locally saved reports from the previous app version are read on first load. Records that existed only on the old server are not automatically recovered. Previous report-only JSON exports are not version-2 full backups.
+
+## Setup
+
+Use **Node.js 24**.
+
+```sh
+npm ci
+cp .env.example .env
+# Fill in your server-side API keys.
+npm run dev
+```
+
+Development UI: http://localhost:5173. Express: http://localhost:3001. Vite proxies `/api` requests to Express.
+
+For production:
+
+```sh
+npm run build
+npm start
+```
+
+Express serves the built interface and API from the same origin. No database connection, migration command, or scheduled task is required.
+
+### Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `SERPAPI_API_KEY` | Required for default SerpApi search |
+| `SEARCH_PROVIDER` | `serpapi` by default; optionally `firecrawl` |
+| `FIRECRAWL_API_KEY` | Enables full-page scraping; also required if choosing Firecrawl search |
+| `OPENAI_API_KEY` | Required for evaluations and article summaries |
+| `OPENAI_MODEL` | Defaults to `gpt-4o-mini`; must support strict structured outputs |
+| `PORT` | Express port; defaults to 3001 |
+
+Obtain a SerpApi key from its [dashboard](https://serpapi.com/manage-api-key). Search uses its [Google organic results API](https://serpapi.com/search-api), including zero-based pagination, capped to at most two search requests and 20 candidates. General news prompts use ordinary web search so articles and news can both appear. Firecrawl remains an optional alternate search provider.
+
+API keys remain on the backend in `.env`; they are never included in local storage or JSON backups. Resume text goes to OpenAI for job-mode evaluation, not to SerpApi or Firecrawl. The backend retains request data only during execution and does not save resumes or reports. External providers have their own retention policies. Keep `.env` out of source control. Restrict access and usage at the hosting layer before exposing paid-provider searches publicly.
+
+## Backend streaming API
+
+`POST /api/search` accepts:
+
+```json
+{
+  "tabId": "159f4603-eaee-47c4-bd9a-a43308e80545",
+  "config": {
+    "title": "Software roles",
+    "mode": "jobs",
+    "roles": ["Software Engineer"],
+    "companies": ["Acme"],
+    "locations": ["Toronto"],
+    "skills": ["TypeScript"],
+    "resume": "Your resume text",
+    "limit": 10
+  },
+  "history": [
+    {
+      "title": "Software Engineer",
+      "company": "Acme",
+      "url": "https://example.com/jobs/123",
+      "recordedAt": "2026-10-07T12:00:00Z"
+    }
+  ]
+}
+```
+
+The response is newline-delimited JSON (`application/x-ndjson`):
+
+```json
+{"type":"progress","stage":"searching","message":"Searching with SerpApi…"}
+{"type":"progress","stage":"scraping","message":"Reading postings with Firecrawl…","current":1,"total":10}
+{"type":"progress","stage":"generating","message":"Generating your report with OpenAI…","current":1,"total":10}
+```
+
+The final line is a `complete` event with a `report` containing `id`, `tabId`, `createdAt`, `status`, `results`, and `warnings`. A failed search emits an `error` event and saves no partial report. Invalid request bodies receive an HTTP error before streaming starts. Heartbeat events keep idle streams active; the frontend ignores them.
+
+Provider calls have a 45-second timeout each. Configure hosting/proxy timeouts for long searches, and disable response buffering/compression that delays streamed progress. A disconnected search cannot be resumed or fetched later because the backend does not retain it. `GET /api/health` checks process health only.
+
+## Verification
+
+```sh
+npm test
+npm run build
+```
+
+Tests cover streaming progress before completion, request validation, client chunk decoding and error handling, cancellation, recent duplicate filtering, strict matching, provider fallback/error handling, SerpApi pagination, separate shown/applied histories, backup validation/merging, pruning, and legacy local-data migration. Provider calls are mocked; live searches need your API credentials. GitHub Actions runs tests and the production build on pushes and pull requests.

@@ -1,17 +1,5 @@
-For a workflow running a few cron jobs daily targeting 10 job applications each,
-Firecrawl will cost $0/month on its Free Tier, or $16–$19/month if you expand significantly.
+Firecrawl is used to read full job/article pages as Markdown. Without a Firecrawl API key, the app evaluates search snippets. A failed scrape also falls back to the snippet and adds a warning to the completed report.
 
-The Math: Daily Usage & Credit Calculations
-Firecrawl’s basic URL scrape to Markdown costs 1 credit per page.
-Scenario 1: Light Usage (3 Cron Jobs / Day)Jobs Scraped: 3 search tabs × 10 job links = 30 pages / day.Monthly Volume: 30 pages × 30 days = 900 credits / month.Cost: $0.00 / month
-(Fits completely within Firecrawl's 1,000 free credits/month).
+SEARCH_PROVIDER=firecrawl optionally uses Firecrawl for web search as an alternative to SerpApi. Search and scrape usage may consume separate credits. Check your provider dashboard for current pricing and quota; previous cost estimates are no longer applicable.
 
-Scenario 2: Medium Usage (5 Cron Jobs / Day)Jobs Scraped: 5 search tabs × 10 job links = 50 pages / day.Monthly Volume: 50 pages × 30 days = 1,500 credits / month.Cost:
-Fits on the Hobby Plan ($16/mo billed annually or $19/mo billed monthly), which gives 5,000 credits/month.
-Cost Breakdown Across Your Full StackFor 30 job applications evaluated daily across all steps in your pipeline:
-ComponentDaily Volume
-Estimated Monthly Cost
-Google Custom Search API3–5 queries / day$0.00 (Free limit is 100 queries/day)Firecrawl API30 page scrapes / day$0.00 (Free limit is 1,000 credits/month)OpenAI API (gpt-4o-mini)30 evaluations / day~$0.50 / monthTotal Pipeline Cost30 jobs / day~$0.50 / monthOptimization Strategy to Keep Firecrawl FreeURL Deduplication: Store scraped URLs in LocalStorage or your backend DB.
-If a job link from today was already scraped 2 days ago, pull the cached text instead of making another Firecrawl API call.
-Static Parser Fallback: For standard HTML job boards that don't block basic requests (like Lever or Greenhouse), fetch raw HTML with Python requests and parse with BeautifulSoup for free.
-Only pass blocked or heavy JS sites (like Workday) through Firecrawl.
+Recent known posting URLs are skipped before scraping. Repeated title/company pairs on different URLs are identified after OpenAI evaluation. No shared scrape cache or raw HTML fallback is implemented.

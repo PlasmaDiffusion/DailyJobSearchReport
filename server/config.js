@@ -5,7 +5,7 @@ export const configSchema=z.object({
  companies:terms,roles:terms,skills:terms,locations:terms,
  strictCompany:z.boolean().default(false),strictRole:z.boolean().default(false),strictSkills:z.boolean().default(false),
  resume:z.string().max(30000).default(''),prompt:z.string().max(3000).default(''),
- limit:z.number().int().min(1).max(20).default(10),enabled:z.boolean().default(true)
+ limit:z.number().int().min(1).max(20).default(10)
 }).superRefine((c,ctx)=>{if(c.mode==='news'&&!c.prompt.trim())ctx.addIssue({code:'custom',path:['prompt'],message:'Enter a news search prompt'});if(c.mode==='jobs'&&!c.roles.length&&!c.companies.length)ctx.addIssue({code:'custom',path:['roles'],message:'Enter at least one role or company'});});
 export const normalize=s=>s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 export const pairKey=r=>normalize(r.company)+'|'+normalize(r.title);

@@ -2,7 +2,7 @@
 @layer base {
  body { font-family: Inter, system-ui, sans-serif; }
  label,.label { font-size: .875rem; color: #cbd5e1; }
- input:not([type=checkbox]):not([type=radio]),textarea { display:block; width:100%; margin-top:.5rem; background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:.5rem; padding:.65rem .85rem; }
+ input:not([type=checkbox]):not([type=radio]):not([type=file]),textarea { display:block; width:100%; margin-top:.5rem; background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:.5rem; padding:.65rem .85rem; }
  input[type=checkbox],input[type=radio] { accent-color:#2dd4bf; }
  button { background:#163c42; border:1px solid #2b6770; border-radius:.5rem; padding:.6rem .9rem; color:#ccfbf1; font-size:.875rem; cursor:pointer; }
  button:hover { background:#23545c; } button:disabled { opacity:.45;cursor:wait; }

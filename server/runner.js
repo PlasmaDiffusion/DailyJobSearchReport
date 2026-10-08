@@ -1,24 +1,25 @@
 import { randomUUID } from 'node:crypto';
-import { pairKey,strictMatch } from './config.js';
-export function makeRunner(store,providers){
- return (code,source='manual')=>store.locked(code,async()=>{
- const c=await store.get(code);if(!c){const e=new Error('Search not found');e.status=404;throw e;}
- const id=randomUUID();await store.start(id,code,source);
- try {
- const recent=await store.recent(code),urls=new Set(recent.map(r=>r.url)),pairs=new Set(recent.map(pairKey)),results=[],warnings=[];
- const candidates=await providers.search(c);
- for(const item of candidates.slice(0,c.limit)){
- let u;try{u=new URL(item.url);}catch{continue;}if(!['http:','https:'].includes(u.protocol)||urls.has(item.url))continue;
+import { z } from 'zod';
+import { pairKey,strictMatch,configSchema } from './config.js';
+export const requestSchema=z.object({tabId:z.uuid(),config:configSchema,history:z.array(z.object({title:z.string().max(30000),company:z.string().max(30000),url:z.url().max(4000),recordedAt:z.iso.datetime({offset:true})})).max(2000).default([])});
+export function makeRunner(providers){
+ return async({tabId,config:c,history},emit=()=>{},signal)=>{
+ const checkpoint=()=>signal?.throwIfAborted();checkpoint();
+ const recent=history.filter(r=>Date.parse(r.recordedAt)>Date.now()-30*86400000&&Date.parse(r.recordedAt)<=Date.now());
+ const urls=new Set(recent.map(r=>r.url)),pairs=new Set(recent.map(pairKey)),results=[],warnings=[];
+ emit({type:'progress',stage:'searching',message:`Searching with ${process.env.SEARCH_PROVIDER==='firecrawl'?'Firecrawl':'SerpApi'}…`});
+ const candidates=await providers.search(c,signal);checkpoint();
+ const items=candidates.slice(0,c.limit);
+ for(const [index,item] of items.entries()){
+ checkpoint();let u;try{u=new URL(item.url);}catch{continue;}if(!['http:','https:'].includes(u.protocol)||urls.has(item.url))continue;
  let text=item.snippet;
- try{text=(await providers.scrape(item.url))||text;}catch{warnings.push(`Could not scrape ${item.url}; evaluated its search snippet.`);}
- const result={...await providers.evaluate(c,item,text),url:item.url};
+ emit({type:'progress',stage:'scraping',message:process.env.FIRECRAWL_API_KEY?'Reading postings with Firecrawl…':'Using search snippets (Firecrawl is not configured)…',current:index+1,total:items.length});
+ try{text=(await providers.scrape(item.url,signal))||text;}catch{checkpoint();warnings.push(`Could not scrape ${item.url}; evaluated its search snippet.`);}
+ checkpoint();emit({type:'progress',stage:'generating',message:'Generating your report with OpenAI…',current:index+1,total:items.length});
+ const result={...await providers.evaluate(c,item,text,signal),url:item.url};checkpoint();
  if(c.mode==='jobs'&&(!strictMatch(c,result,[result.title,result.company,text].join(' '))||pairs.has(pairKey(result))))continue;
  results.push(result);urls.add(result.url);pairs.add(pairKey(result));
  }
- await store.finish(id,results,warnings);return {id,code,source,status:'completed',results,warnings};
- }catch(e){await store.fail(id);throw e;}
- });
-}
-export async function runScheduled(store,run){
- for(const code of await store.enabled()){try{await run(code,'cron');}catch(e){console.error('Scheduled search failed',code,e.message);}}
+ checkpoint();return {id:randomUUID(),tabId,createdAt:new Date().toISOString(),status:'completed',results,warnings};
+ };
 }

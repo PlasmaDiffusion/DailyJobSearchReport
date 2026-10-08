@@ -1,0 +1,13 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {backupSchema,mergeBackup,recentHistory,pruneReports,loadState} from '../shared/history.js';
+const id='159f4603-eaee-47c4-bd9a-a43308e80545',reportId='159f4603-eaee-47c4-bd9a-a43308e80546';
+const now=Date.parse('2026-10-08T00:00:00Z'),recent=new Date(now-86400000).toISOString(),old=new Date(now-31*86400000).toISOString();
+const job={title:'Engineer',company:'Acme',url:'https://example.com/job',summary:'Job',fitScore:null,keyGaps:[],missingKeywords:[],resumeMatch:''};
+const state=()=>({version:2,tabs:[{id,config:{title:'Jobs',roles:['Engineer'],resume:'My resume'}}],reports:[{id:reportId,tabId:id,createdAt:recent,status:'completed',results:[job],warnings:[]}],applications:[{...job,url:'https://example.com/applied',appliedAt:recent}]});
+test('JSON roundtrip preserves tabs, resumes, reports and separate applications',()=>{const parsed=backupSchema.parse(state());assert.deepEqual(backupSchema.parse(JSON.parse(JSON.stringify(parsed))),parsed);assert.equal(parsed.applications.length,1);});
+test('import merges records without duplicating or overwriting existing tabs',()=>{const current=backupSchema.parse(state()),incoming=state();incoming.tabs[0].config.title='Incoming title';const merged=mergeBackup(current,incoming);assert.equal(merged.tabs.length,1);assert.equal(merged.tabs[0].config.title,'Jobs');assert.equal(merged.reports.length,1);});
+test('unsafe links and unsupported backup versions are rejected',()=>{const bad=state();bad.reports[0].results[0]={...job,url:'javascript:alert(1)'};assert.throws(()=>backupSchema.parse(bad));assert.throws(()=>mergeBackup(backupSchema.parse(state()),{...state(),version:1}));});
+test('only recent shown and applied jobs enter history; pruning keeps applications',()=>{const s=backupSchema.parse(state());s.reports.push({...s.reports[0],id:'159f4603-eaee-47c4-bd9a-a43308e80547',createdAt:old});assert.equal(recentHistory(s,id,now).length,2);const pruned=pruneReports(s,now);assert.equal(pruned.reports.length,1);assert.equal(pruned.applications.length,1);});
+test('legacy local tabs and saved reports migrate without backend reads',()=>{const s=state();const values={'djs.tabs':JSON.stringify(s.tabs.map(t=>({code:t.id,config:{...t.config,enabled:true}}))),'djs.reports':JSON.stringify(s.reports.map(r=>({...r,code:r.tabId,created_at:r.createdAt})))};const loaded=loadState({getItem:k=>values[k]||null});assert.equal(loaded.tabs[0].id,id);assert.equal(loaded.reports[0].tabId,id);assert.ok(!('enabled' in loaded.tabs[0].config));});
+test('duplicate IDs in imported backup are rejected',()=>{const bad=state();bad.tabs.push(bad.tabs[0]);assert.throws(()=>backupSchema.parse(bad));});

@@ -6,13 +6,10 @@
     "dev": "concurrently \"node --watch server/index.js\" \"vite --host 0.0.0.0\"",
     "start": "node server/index.js",
     "build": "vite build",
-    "test": "node --test",
-    "db:migrate": "node server/migrate.js"
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^5.1.0",
-    "pg": "^8.16.3",
-    "node-cron": "^4.2.1",
     "dotenv": "^17.2.3",
     "zod": "^4.1.12",
     "react": "^19.2.0",
