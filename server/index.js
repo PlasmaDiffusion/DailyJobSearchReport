@@ -1,0 +1,14 @@
+import 'dotenv/config';
+import express from 'express';
+import cron from 'node-cron';
+import { fileURLToPath } from 'node:url';
+import { Store,pool,lockPool } from './db.js';
+import { providers } from './providers.js';
+import { makeRunner,runScheduled } from './runner.js';
+import { createApp } from './app.js';
+if(!process.env.DATABASE_URL)throw new Error('Set DATABASE_URL and run npm run db:migrate before starting');
+const store=new Store(),run=makeRunner(store,providers),app=createApp(store,run);
+const dist=fileURLToPath(new URL('../dist/',import.meta.url));app.use(express.static(dist));app.get('/{*path}',(req,res)=>res.sendFile(dist+'index.html'));
+const task=process.env.CRON_ENABLED==='false'?null:cron.schedule('0 2 * * *',()=>runScheduled(store,run),{timezone:process.env.CRON_TIMEZONE||'America/Toronto',noOverlap:true});
+const server=app.listen(process.env.PORT||3001,()=>console.log('Daily Job Search Report server ready'));
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{task?.stop();server.close(async()=>{await Promise.all([pool.end(),lockPool.end()]);process.exit(0);});});
