@@ -1,10 +1,17 @@
 /** Defines the HTTP API, including validation and streamed search responses. */
 import express from 'express';
+import type { ErrorRequestHandler } from 'express';
 import { z } from 'zod';
 import { requestSchema } from './runner.js';
 
 /** Build the Express app around a search runner, allowing tests to inject one. */
-export function createApp(run) {
+type SearchRunner = (
+  input: z.infer<typeof requestSchema>,
+  emit: (event: any) => void,
+  signal: AbortSignal,
+) => Promise<unknown>;
+
+export function createApp(run: SearchRunner) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '2mb' }));
@@ -26,7 +33,7 @@ export function createApp(run) {
     });
     res.flushHeaders();
 
-    const emit = (event) => {
+    const emit = (event: any) => {
       if (!res.destroyed) res.write(`${JSON.stringify(event)}\n`);
     };
     const heartbeat = setInterval(() => emit({ type: 'heartbeat' }), 15000);
@@ -51,7 +58,7 @@ export function createApp(run) {
   });
 
   app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint not found' }));
-  app.use((error, req, res, next) => {
+  const handleError: ErrorRequestHandler = (error, req, res, next) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Invalid search request', details: error.issues });
     }
@@ -60,7 +67,8 @@ export function createApp(run) {
 
     console.error(error.message);
     return res.status(500).json({ error: 'Request failed' });
-  });
+  };
+  app.use(handleError);
 
   return app;
 }

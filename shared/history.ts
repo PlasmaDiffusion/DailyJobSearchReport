@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { configSchema } from '../server/config.js';
 
+
 export const DAYS_30 = 30 * 86400000;
 const date = z.iso.datetime({ offset: true });
 const url = z.url().refine(
@@ -51,6 +52,10 @@ export const backupSchema = z.object({
     }
   }
 });
+
+export type Job = z.infer<typeof jobSchema>;
+export type Report = z.infer<typeof reportSchema>;
+export type Backup = z.infer<typeof backupSchema>;
 
 export const emptyState = () => ({ version: 2, tabs: [], reports: [], applications: [] });
 

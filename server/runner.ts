@@ -1,7 +1,28 @@
 /** Orchestrates provider calls, progress events, filtering, and report creation. */
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { pairKey, strictMatch, configSchema } from './config.js';
+import { pairKey, strictMatch, configSchema, type SearchConfig } from './config.js';
+import type { Job } from '../shared/history.js';
+
+type SearchItem = { title: string; url: string; snippet: string };
+type Evaluation = Omit<Job, 'url'>;
+type RunnerProviders = {
+  search(config: SearchConfig, signal?: AbortSignal): Promise<SearchItem[]>;
+  scrape(url: string, signal?: AbortSignal): Promise<string | null>;
+  evaluate(
+    config: SearchConfig,
+    item: SearchItem,
+    text: string,
+    signal?: AbortSignal,
+  ): Promise<Evaluation>;
+};
+type ProgressEvent = {
+  type: 'progress';
+  stage: 'searching' | 'scraping' | 'generating';
+  message: string;
+  current?: number;
+  total?: number;
+};
 
 export const requestSchema = z.object({
   tabId: z.uuid(),
@@ -15,8 +36,12 @@ export const requestSchema = z.object({
 });
 
 /** Create a search runner using the supplied provider adapters. */
-export function makeRunner(providers) {
-  return async ({ tabId, config, history }, emit = () => {}, signal) => {
+export function makeRunner(providers: RunnerProviders) {
+  return async (
+    { tabId, config, history }: z.infer<typeof requestSchema>,
+    emit: (event: ProgressEvent) => void = () => {},
+    signal?: AbortSignal,
+  ) => {
     const checkpoint = () => signal?.throwIfAborted();
     checkpoint();
 

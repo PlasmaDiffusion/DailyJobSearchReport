@@ -1,8 +1,31 @@
 /** Sends a search request and reads progress and report events from its stream. */
 import { reportSchema } from '../shared/history.js';
+import type { SearchConfig } from '../server/config.js';
+
+type SearchRequest = {
+  tabId: string;
+  config: SearchConfig;
+  history: Array<{
+    title: string;
+    company: string;
+    url: string;
+    recordedAt: string;
+  }>;
+};
+type ProgressEvent = {
+  type: 'progress';
+  stage: string;
+  message: string;
+  current?: number;
+  total?: number;
+};
 
 /** Request a report, forward progress events, and validate the completed result. */
-export async function search(input, onProgress, signal) {
+export async function search(
+  input: SearchRequest,
+  onProgress: (event: ProgressEvent) => void,
+  signal?: AbortSignal,
+) {
   const response = await fetch('/api/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -23,7 +46,7 @@ export async function search(input, onProgress, signal) {
   let report;
 
   // Process one newline-delimited event without assuming network chunk boundaries.
-  const consume = (line) => {
+  const consume = (line: string) => {
     if (!line.trim()) return;
 
     const event = JSON.parse(line);

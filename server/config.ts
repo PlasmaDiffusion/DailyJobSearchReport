@@ -33,28 +33,31 @@ export const configSchema = z.object({
   }
 });
 
+export type SearchConfig = z.infer<typeof configSchema>;
+
 /** Normalize text so matching ignores case, punctuation, and Unicode variants. */
-export const normalize = (value) => value
+export const normalize = (value: string): string => value
   .normalize('NFKC')
   .toLowerCase()
   .replace(/[^\p{L}\p{N}]+/gu, ' ')
   .trim();
 
 /** Build a stable key for detecting a repeated company and job title. */
-export const pairKey = (result) => `${normalize(result.company)}|${normalize(result.title)}`;
+export const pairKey = (result: { company: string; title: string }): string =>
+  `${normalize(result.company)}|${normalize(result.title)}`;
 
 /** Apply the user's enabled company, role, and skill filters to candidate text. */
-export function strictMatch(c,r,text){
+export function strictMatch(config: SearchConfig, _result: unknown, text: string): boolean {
  const normalizedText = normalize(text);
- const has = (items) => items.some((item) => normalizedText.includes(normalize(item)));
+ const has = (items: string[]) => items.some((item) => normalizedText.includes(normalize(item)));
 
- return (!c.strictCompany || !c.companies.length || has(c.companies))
-  && (!c.strictRole || !c.roles.length || has(c.roles))
-  && (!c.strictSkills || c.skills.every((skill) => normalizedText.includes(normalize(skill))));
+ return (!config.strictCompany || !config.companies.length || has(config.companies))
+  && (!config.strictRole || !config.roles.length || has(config.roles))
+  && (!config.strictSkills || config.skills.every((skill) => normalizedText.includes(normalize(skill))));
 }
 
 /** Build the web search query for either job listings or news articles. */
-export function queryFor(config) {
+export function queryFor(config: SearchConfig): string {
   if (config.mode === 'news') return config.prompt;
 
   const group = (items) => items.length

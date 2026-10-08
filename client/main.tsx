@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { configSchema } from '../server/config.js';
+import type { SearchConfig } from '../server/config.js';
 import {
   backupSchema,
   emptyState,
@@ -11,10 +12,11 @@ import {
   recentHistory,
   pruneReports,
 } from '../shared/history.js';
+import type { Backup, Report } from '../shared/history.js';
 import { search } from './search.js';
 import './style.css';
 
-const blank = () => ({
+const blank = (): SearchConfig => ({
   title: 'New search',
   mode: 'jobs',
   companies: [],
@@ -31,19 +33,23 @@ const blank = () => ({
 
 /** Owns the active search tab and persists reports in browser storage. */
 function App() {
-  const [state, setState] = useState(emptyState);
+  const [state, setState] = useState<Backup>(emptyState());
   const [active, setActive] = useState();
-  const [form, setForm] = useState(blank);
+  const [form, setForm] = useState<SearchConfig>(blank());
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
-  const [progress, setProgress] = useState();
+  const [progress, setProgress] = useState<{
+    message: string;
+    current?: number;
+    total?: number;
+  }>();
   const [usage, setUsage] = useState(0);
   const [prune, setPrune] = useState(false);
   const [remove, setRemove] = useState(false);
-  const [unsaved, setUnsaved] = useState();
+  const [unsaved, setUnsaved] = useState<Report>();
   const abort = useRef();
-  const importFile = useRef();
+  const importFile = useRef<HTMLInputElement>(null);
 
   function updateUsage() {
     try {
@@ -99,7 +105,7 @@ function App() {
   }
 
   // Validate the form and save it into the active tab, creating a tab if needed.
-  function save() {
+  function save(): { id: string; config: SearchConfig; saved: Backup } {
     const config = configSchema.parse({
       ...form,
       ...Object.fromEntries(
@@ -145,7 +151,7 @@ function App() {
   }
 
   // Validate and merge a selected backup, reporting any import errors.
-  async function importData(file) {
+  async function importData(file?: File) {
     if (!file) return;
 
     setBusy(true);
@@ -201,9 +207,11 @@ function App() {
     }
   }
 
-  const change = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  function change<Key extends keyof SearchConfig>(key: Key, value: SearchConfig[Key]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
 
-  function toggleApplied(job) {
+  function toggleApplied(job: Report['results'][number]) {
     const exists = state.applications.some((application) => application.url === job.url);
     const applications = exists
       ? state.applications.filter((application) => application.url !== job.url)
@@ -227,7 +235,7 @@ function App() {
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
             <span>Browser storage: {(usage / 1024).toFixed(1)} KB</span>
             <button disabled={busy || !ready} onClick={exportData}>Export JSON</button>
-            <button disabled={busy || !ready} onClick={() => importFile.current.click()}>
+            <button disabled={busy || !ready} onClick={() => importFile.current?.click()}>
               Import JSON
             </button>
             <input
@@ -236,7 +244,7 @@ function App() {
               type="file"
               accept="application/json,.json"
               aria-label="Import JSON backup"
-              onChange={(event) => importData(event.target.files[0])}
+              onChange={(event) => importData(event.target.files?.[0] || undefined)}
             />
             <button disabled={busy} onClick={() => setPrune(true)}>
               Delete reports 30+ days old

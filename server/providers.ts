@@ -1,6 +1,10 @@
 /** Adapts search, page scraping, and structured evaluations to external APIs. */
 import { z } from 'zod';
-import { queryFor } from './config.js';
+import { queryFor, type SearchConfig } from './config.js';
+import type { Job } from '../shared/history.js';
+
+type SearchItem = { title: string; url: string; snippet: string };
+type Evaluation = Omit<Job, 'url'>;
 
 /** Fetch JSON with a bounded timeout and report provider HTTP failures. */
 async function json(url, options = {}) {
@@ -41,7 +45,7 @@ const properties = {
 /** Provider operations consumed by the stateless report runner. */
 export const providers = {
   // Search the configured provider and normalize its results for the runner.
-  async search(config, signal) {
+  async search(config: SearchConfig, signal?: AbortSignal): Promise<SearchItem[]> {
     if (process.env.SEARCH_PROVIDER === 'firecrawl') {
       requireEnv('FIRECRAWL_API_KEY');
       const result = await json('https://api.firecrawl.dev/v2/search', {
@@ -106,7 +110,7 @@ export const providers = {
   },
 
   // Read the main page content when Firecrawl is configured.
-  async scrape(url, signal) {
+  async scrape(url: string, signal?: AbortSignal): Promise<string | null> {
     if (!process.env.FIRECRAWL_API_KEY) return null;
 
     const result = await json('https://api.firecrawl.dev/v2/scrape', {
@@ -124,7 +128,12 @@ export const providers = {
   },
 
   // Ask OpenAI for a validated, structured evaluation of one candidate.
-  async evaluate(config, item, text, signal) {
+  async evaluate(
+    config: SearchConfig,
+    item: SearchItem,
+    text: string,
+    signal?: AbortSignal,
+  ): Promise<Evaluation> {
     requireEnv('OPENAI_API_KEY');
 
     const systemMessage = [
