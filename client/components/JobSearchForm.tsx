@@ -7,6 +7,8 @@ type JobSearchFormProps = {
   disabled: boolean;
   onChange: <Key extends keyof SearchConfig>(key: Key, value: SearchConfig[Key]) => void;
   onSave: () => void;
+  onApply: () => void;
+  hasActiveTab: boolean;
   onSearch: () => void;
   accentColor: string;
   onAccentColorChange: (color: string) => void;
@@ -31,6 +33,8 @@ export function JobSearchForm({
   disabled,
   onChange,
   onSave,
+  onApply,
+  hasActiveTab,
   onSearch,
   accentColor,
   onAccentColorChange,
@@ -152,7 +156,10 @@ export function JobSearchForm({
               onChange={(event) => onChange('limit', Number(event.target.value))}
             />
           </label>
-          <Button variant="primary" onClick={onSave}>Save settings</Button>
+          <Button variant="primary" onClick={onSave}>Save As New Tab</Button>
+          <Button disabled={!hasActiveTab} onClick={onApply}>
+            Apply Changes To Current Tab
+          </Button>
           {onDeleteTab && <Button variant="danger" onClick={onDeleteTab}>Delete tab</Button>}
         </div>
 

@@ -142,6 +142,22 @@ function App() {
     }
   }
 
+  function applyChangesToCurrentTab() {
+    if (!activeId) return;
+
+    try {
+      const config = validatedConfig();
+      const tabs = state.tabs.map((tab) => (
+        tab.id === activeId ? { ...tab, config } : tab
+      ));
+      if (!persist({ ...state, tabs })) return;
+      setForm(config);
+      setNotice(`Updated the “${config.title}” tab.`);
+    } catch (error: any) {
+      setNotice(error.issues?.map((issue: { message: string }) => issue.message).join('; ') || error.message);
+    }
+  }
+
   // Search the active tab's edited settings, creating a tab when starting a new search.
   function saveForSearch(): { id: string; config: SearchConfig; saved: Backup } {
     const config = validatedConfig();
@@ -269,7 +285,7 @@ function App() {
           <div className="brand-mark" aria-hidden="true">D</div>
           <div className="toolbar-title">
             <span>DAILY JOB SEARCH</span>
-            <strong>Opportunity finder</strong>
+            <strong>REPORT</strong>
           </div>
           <BackupActions
             usageBytes={usage}
@@ -296,6 +312,8 @@ function App() {
             disabled={busy || !ready}
             onChange={updateField}
             onSave={saveSettings}
+            onApply={applyChangesToCurrentTab}
+            hasActiveTab={Boolean(activeId)}
             onSearch={runSearch}
             accentColor={draftColor}
             onAccentColorChange={updateTabColor}
