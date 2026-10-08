@@ -32,7 +32,11 @@ export const reportSchema = z.object({
   warnings: z.array(text).max(20).default([]),
 });
 
-const tabSchema = z.object({ id: z.uuid(), config: configSchema });
+const tabSchema = z.object({
+  id: z.uuid(),
+  config: configSchema,
+  color: z.string().regex(/^#[\da-f]{6}$/i).default('#ff5056'),
+});
 export const backupSchema = z.object({
   version: z.literal(2),
   tabs: z.array(tabSchema),
