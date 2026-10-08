@@ -15,10 +15,18 @@ export const providers={
  const r=await json('https://api.firecrawl.dev/v2/search',{method:'POST',headers:{Authorization:`Bearer ${process.env.FIRECRAWL_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({query:queryFor(c),limit:c.limit,sources:['web']})});
  if(!r.success)throw new Error('Search failed');return (r.data?.web||[]).map(r=>({title:r.title,url:r.url,snippet:r.description||''}));
  }
- if(process.env.SEARCH_PROVIDER&&process.env.SEARCH_PROVIDER!=='google')throw new Error('SEARCH_PROVIDER must be google or firecrawl');
- requireEnv('GOOGLE_API_KEY','GOOGLE_SEARCH_ENGINE_ID');const items=[];
- for(let start=1;start<=c.limit;start+=10){const u=new URL('https://www.googleapis.com/customsearch/v1');for(const [k,v] of Object.entries({key:process.env.GOOGLE_API_KEY,cx:process.env.GOOGLE_SEARCH_ENGINE_ID,q:queryFor(c),num:Math.min(10,c.limit-items.length),start}))u.searchParams.set(k,v);const data=await json(u);items.push(...(data.items||[]));if(!data.queries?.nextPage)break;}
- return items.map(r=>({title:r.title,url:r.link,snippet:r.snippet||''}));
+ if(process.env.SEARCH_PROVIDER&&process.env.SEARCH_PROVIDER!=='serpapi')throw new Error('SEARCH_PROVIDER must be serpapi or firecrawl');
+ requireEnv('SERPAPI_API_KEY');const items=[];
+ // Google results use ten-result pages. Do not rely on the retired Google num parameter.
+ for(let start=0;start<c.limit;start+=10){
+ const u=new URL('https://serpapi.com/search.json');
+ for(const [k,v] of Object.entries({engine:'google',api_key:process.env.SERPAPI_API_KEY,q:queryFor(c),start,output:'json'}))u.searchParams.set(k,v);
+ const data=await json(u);
+ if(data.error||data.search_metadata?.status==='Error')throw new Error('SerpApi search failed');
+ const page=data.organic_results||[];items.push(...page);
+ if(items.length>=c.limit||!page.length||!data.serpapi_pagination?.next)break;
+ }
+ return items.slice(0,c.limit).map(r=>({title:r.title,url:r.link,snippet:r.snippet||''}));
  },
  async scrape(url){
  if(!process.env.FIRECRAWL_API_KEY)return null;

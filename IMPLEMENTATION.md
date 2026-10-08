@@ -1,6 +1,6 @@
 # Daily Job Search Report
 
-This branch implements the proposal in `readme.md`: a React/React Router/Tailwind interface and an Express backend with PostgreSQL/Neon persistence. The original proposal and notes are preserved.
+This branch implements the proposal in `readme.md`: a React/React Router/Tailwind interface and an Express backend with PostgreSQL/Neon persistence. The proposal uses SerpApi for search; the original Firecrawl cost notes are historical.
 
 ## Setup
 
@@ -25,12 +25,12 @@ Express serves the built interface and API from the same origin. Database migrat
 
 ### Providers
 
-- `SEARCH_PROVIDER=google`: requires `GOOGLE_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID`. Google Custom Search JSON API is closed to new customers and ends January 1, 2027 for existing customers; see [Google's notice](https://developers.google.com/custom-search/v1/overview). Use this only with an existing eligible account.
-- `SEARCH_PROVIDER=firecrawl`: uses `FIRECRAWL_API_KEY` for web search instead, without Google credentials. Search credits and scrape credits are billed separately; the old cost estimates in `firecrawlNotes.txt` are historical, not validated pricing.
+- `SEARCH_PROVIDER=serpapi` (default when unset): requires `SERPAPI_API_KEY`. Obtain the key from your [SerpApi dashboard](https://serpapi.com/manage-api-key). Uses the [Google organic search endpoint](https://serpapi.com/search-api) for both jobs and general news/article prompts, with zero-based ten-result pagination and a maximum of two requests per search. Results are capped at the requested limit. Google Custom Search JSON API was removed because it closes January 1, 2027; see [Google's notice](https://developers.google.com/custom-search/v1/overview). Existing deployments must replace `SEARCH_PROVIDER=google` with `SEARCH_PROVIDER=serpapi`, add `SERPAPI_API_KEY`, and restart the server. Google API keys and search-engine IDs are no longer used.
+- `SEARCH_PROVIDER=firecrawl`: uses `FIRECRAWL_API_KEY` for web search instead, without SerpApi credentials. Search credits and scrape credits are billed separately; the old cost estimates in `firecrawlNotes.txt` are historical, not validated pricing.
 - `OPENAI_API_KEY` is required for evaluation. `OPENAI_MODEL` defaults to `gpt-4o-mini`; choose a model that supports strict structured outputs.
 - `FIRECRAWL_API_KEY` optionally enables full-page scraping with either search provider. Without it, evaluation uses search snippets. Scrape failures produce a report warning and fall back to snippets. Search/evaluation failures mark the run failed without saving partial results.
 
-The Google search request contains criteria but never the resume. Resume text is sent to OpenAI, stored in PostgreSQL, and retained in browser tab settings. News mode does not send the resume to OpenAI. Provider calls have a 45-second timeout each.
+The SerpApi or Firecrawl search request contains criteria but never the resume. Resume text is sent to OpenAI, stored in PostgreSQL, and retained in browser tab settings. News mode does not send the resume to OpenAI. Provider calls have a 45-second timeout each.
 
 ## Scheduled and manual execution
 
@@ -85,4 +85,4 @@ npm test
 npm run build
 ```
 
-Tests exercise the manual HTTP endpoint and scheduled trigger, persistence calls, 30-day duplicate filtering, strict matching, snippet fallback, overlapping runs, failures, configuration bounds, Google pagination, Firecrawl v2 search mapping, and structured evaluation validation. Provider calls use mocks and persistence uses a test store; live Neon/provider integration requires your credentials. GitHub Actions runs these tests and the production build on pushes and pull requests.
+Tests exercise the manual HTTP endpoint and scheduled trigger, persistence calls, 30-day duplicate filtering, strict matching, snippet fallback, overlapping runs, failures, configuration bounds, SerpApi pagination and provider errors, Firecrawl v2 search mapping, and structured evaluation validation. Provider calls use mocks and persistence uses a test store; live Neon/provider integration requires your credentials. GitHub Actions runs these tests and the production build on pushes and pull requests.

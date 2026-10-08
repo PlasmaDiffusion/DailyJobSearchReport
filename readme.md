@@ -1,4 +1,4 @@
-Backend: A NodeJS/Express backend that uses neonDB, openAI, google custom search api, and firecrawl. Every there will be automated searches for jobs based on conditions provided (specific companies, job titles, locations, and the user's resume.) The user will send a job search request code as well for later. Additionally instead of the previously mentioned conditions, there can be specific prompt searches for news on any new tech that could be key for software developers to learn or general articles for how the industry is doing.
+Backend: A NodeJS/Express backend that uses neonDB, openAI, SerpApi, and firecrawl. Every there will be automated searches for jobs based on conditions provided (specific companies, job titles, locations, and the user's resume.) The user will send a job search request code as well for later. Additionally instead of the previously mentioned conditions, there can be specific prompt searches for news on any new tech that could be key for software developers to learn or general articles for how the industry is doing.
 
 
 
@@ -19,7 +19,7 @@ Main Plan / Architecture:
                                           |
                                           v
 +-----------------------------------------------------------------------------------+
-| STEP 2: Search API (Google Custom Search)                    |
+| STEP 2: Search API (SerpApi)                    |
 | - Query: "site:greenhouse.io OR site:lever.co OR site:workday.com [Company] [Role]"|
 | - Fetch live posting links & snippets without feeding resume yet
 | - The user sets the amount of results to look for (with a hard limit)              |
