@@ -298,13 +298,15 @@ function App() {
           />
         </header>
 
-        {(notice || progress) && (
-          <div className={`workspace-notice${progress ? ' workspace-notice--progress' : ''}`} role="status">
-            <span>{progress?.message || notice}</span>
-            {progress?.total && <span>{progress.current}/{progress.total}</span>}
-            {progress && <Button onClick={() => abort.current?.abort()}>Cancel search</Button>}
-          </div>
-        )}
+        <div
+          className={`workspace-notice${progress ? ' workspace-notice--progress' : ''}${notice || progress ? '' : ' workspace-notice--empty'}`}
+          role="status"
+          aria-hidden={!notice && !progress}
+        >
+          <span>{progress?.message || notice}</span>
+          {progress?.total && <span>{progress.current}/{progress.total}</span>}
+          {progress && <Button onClick={() => abort.current?.abort()}>Cancel search</Button>}
+        </div>
 
         <div className="workspace-columns">
           <JobSearchForm

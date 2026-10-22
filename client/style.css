@@ -160,6 +160,10 @@ a:focus-visible {
   background: #ffe8a8;
 }
 
+.workspace-notice--empty {
+  visibility: hidden;
+}
+
 .workspace-columns {
   display: grid;
   min-height: 0;
