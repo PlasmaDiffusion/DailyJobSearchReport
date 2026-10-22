@@ -95,11 +95,14 @@ export function JobSearchForm({
                 <label className="field-label" key={key}>
                   {label}
                   <input
-                    value={config[key].join(', ')}
+                    // Do not add formatting spaces here: the controlled input
+                    // would put them back immediately when the user deletes one.
+                    value={config[key].join(',')}
                     placeholder="Separate entries with commas"
                     onChange={(event) => onChange(
                       key,
-                      event.target.value.split(',').map((item) => item.trim()),
+                      // Keep whitespace or spaces while typing; validation trims terms later.
+                      event.target.value.split(','),
                     )}
                   />
                 </label>
