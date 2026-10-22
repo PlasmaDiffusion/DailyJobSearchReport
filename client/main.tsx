@@ -240,12 +240,25 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function toggleApplied(result: Report['results'][number]) {
-    const exists = state.applications.some((application) => application.url === result.url);
-    const applications = exists
+  function setApplicationStatus(
+    result: Report['results'][number],
+    status: 'applied' | 'ignored',
+  ) {
+    const current = state.applications.find((application) => application.url === result.url);
+    const applications = current?.status === status
       ? state.applications.filter((application) => application.url !== result.url)
-      : [...state.applications, { ...result, appliedAt: new Date().toISOString() }];
+      : [
+        ...state.applications.filter((application) => application.url !== result.url),
+        { ...result, appliedAt: new Date().toISOString(), status },
+      ];
     persist({ ...state, applications });
+  }
+
+  function removeApplication(application: Backup['applications'][number]) {
+    persist({
+      ...state,
+      applications: state.applications.filter((item) => item.url !== application.url),
+    });
   }
 
   function updateTabColor(color: string) {
@@ -277,7 +290,9 @@ function App() {
     ...state.reports.filter((report) => report.tabId === activeId),
     ...(unsaved ? [unsaved] : []),
   ].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  const appliedUrls = new Set(state.applications.map((application) => application.url));
+  const applicationStatusByUrl = new Map(
+    state.applications.map((application) => [application.url, application.status] as const),
+  );
 
   return (
     <main
@@ -328,8 +343,8 @@ function App() {
           <JobSearchReport
             reports={reports}
             mode={activeTab?.config.mode || form.mode}
-            appliedUrls={appliedUrls}
-            onToggleApplied={toggleApplied}
+            applicationStatusByUrl={applicationStatusByUrl}
+            onSetApplicationStatus={setApplicationStatus}
           />
         </div>
 
@@ -360,12 +375,11 @@ function App() {
           title="Application history"
           confirmLabel="Done"
           onConfirm={() => setShowApplications(false)}
-          onCancel={() => setShowApplications(false)}
         >
           <ApplicationHistory
             applications={state.applications}
             busy={busy}
-            onUndo={toggleApplied}
+            onUndo={removeApplication}
           />
         </Modal>
       )}

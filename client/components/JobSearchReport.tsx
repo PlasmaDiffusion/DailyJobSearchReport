@@ -4,11 +4,11 @@ import { JobSearchReportsList } from './JobSearchReportsList.js';
 type JobSearchReportProps = {
   reports: Report[];
   mode?: 'jobs' | 'news';
-  appliedUrls: Set<string>;
-  onToggleApplied: (result: Report['results'][number]) => void;
+  applicationStatusByUrl: Map<string, 'applied' | 'ignored'>;
+  onSetApplicationStatus: (result: Report['results'][number], status: 'applied' | 'ignored') => void;
 };
 
-export function JobSearchReport({ reports, mode, appliedUrls, onToggleApplied }: JobSearchReportProps) {
+export function JobSearchReport({ reports, mode, applicationStatusByUrl, onSetApplicationStatus }: JobSearchReportProps) {
   return (
     <section className="job-report-panel" aria-label="Job search report">
       <div className="report-panel-heading">
@@ -20,8 +20,8 @@ export function JobSearchReport({ reports, mode, appliedUrls, onToggleApplied }:
       <JobSearchReportsList
         reports={reports}
         activeMode={mode}
-        appliedUrls={appliedUrls}
-        onToggleApplied={onToggleApplied}
+        applicationStatusByUrl={applicationStatusByUrl}
+        onSetApplicationStatus={onSetApplicationStatus}
       />
     </section>
   );

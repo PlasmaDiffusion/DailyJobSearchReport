@@ -457,6 +457,12 @@ a:focus-visible {
   text-decoration: underline;
 }
 
+.job-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 14px;
+}
+
 .report-empty-state {
   display: grid;
   min-height: 180px;
@@ -603,6 +609,10 @@ a:focus-visible {
   margin: 4px 0 0;
   color: #514040;
   font-size: 11px;
+}
+
+.application-status--ignored {
+  color: #8b2c22;
 }
 
 .modal-actions {

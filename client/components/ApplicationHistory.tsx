@@ -1,10 +1,10 @@
-import type { Backup, Report } from '../../shared/history.js';
+import type { Backup } from '../../shared/history.js';
 import { Button } from './common/Button.js';
 
 type ApplicationHistoryProps = {
   applications: Backup['applications'];
   busy: boolean;
-  onUndo: (application: Report['results'][number]) => void;
+  onUndo: (application: Backup['applications'][number]) => void;
 };
 
 export function ApplicationHistory({ applications, busy, onUndo }: ApplicationHistoryProps) {
@@ -20,7 +20,12 @@ export function ApplicationHistory({ applications, busy, onUndo }: ApplicationHi
             <a href={application.url} target="_blank" rel="noreferrer">
               {application.title} · {application.company}
             </a>
-            <p>Applied {new Date(application.appliedAt).toLocaleDateString()}</p>
+            <p>
+              <strong className={`application-status application-status--${application.status}`}>
+                {application.status === 'ignored' ? 'Ignored' : 'Applied'}
+              </strong>
+              {' · '}{new Date(application.appliedAt).toLocaleDateString()}
+            </p>
           </div>
           <Button disabled={busy} onClick={() => onUndo(application)}>Undo</Button>
         </article>

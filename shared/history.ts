@@ -22,7 +22,10 @@ export const jobSchema = z.object({
   resumeMatch: text.default(''),
 });
 
-const application = jobSchema.extend({ appliedAt: date });
+const application = jobSchema.extend({
+  appliedAt: date,
+  status: z.enum(['applied', 'ignored']).default('applied'),
+});
 export const reportSchema = z.object({
   id: z.uuid(),
   tabId: z.uuid(),

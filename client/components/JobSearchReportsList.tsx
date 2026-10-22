@@ -3,15 +3,15 @@ import type { Report } from '../../shared/history.js';
 type JobSearchReportsListProps = {
   reports: Report[];
   activeMode?: 'jobs' | 'news';
-  appliedUrls: Set<string>;
-  onToggleApplied: (result: Report['results'][number]) => void;
+  applicationStatusByUrl: Map<string, 'applied' | 'ignored'>;
+  onSetApplicationStatus: (result: Report['results'][number], status: 'applied' | 'ignored') => void;
 };
 
 export function JobSearchReportsList({
   reports,
   activeMode,
-  appliedUrls,
-  onToggleApplied,
+  applicationStatusByUrl,
+  onSetApplicationStatus,
 }: JobSearchReportsListProps) {
   if (!reports.length) {
     return (
@@ -52,12 +52,20 @@ export function JobSearchReportsList({
                 </p>
               )}
               {activeMode !== 'news' && (
-                <button
-                  className="text-action"
-                  onClick={() => onToggleApplied(result)}
-                >
-                  {appliedUrls.has(result.url) ? 'Applied · undo' : 'Mark as applied'}
-                </button>
+                <div className="job-result-actions">
+                  <button
+                    className="text-action"
+                    onClick={() => onSetApplicationStatus(result, 'applied')}
+                  >
+                    {applicationStatusByUrl.get(result.url) === 'applied' ? 'Applied · undo' : 'Mark as applied'}
+                  </button>
+                  <button
+                    className="text-action"
+                    onClick={() => onSetApplicationStatus(result, 'ignored')}
+                  >
+                    {applicationStatusByUrl.get(result.url) === 'ignored' ? 'Ignored · undo' : 'Ignore'}
+                  </button>
+                </div>
               )}
             </article>
           ))}

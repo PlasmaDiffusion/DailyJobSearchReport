@@ -6,7 +6,7 @@ type ModalProps = {
   children: ReactNode;
   confirmLabel: string;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
 };
 
 export function Modal({ title, children, confirmLabel, onConfirm, onCancel }: ModalProps) {
@@ -17,7 +17,7 @@ export function Modal({ title, children, confirmLabel, onConfirm, onCancel }: Mo
         <div className="modal-copy">{children}</div>
         <div className="modal-actions">
           <Button variant="danger" onClick={onConfirm}>{confirmLabel}</Button>
-          <Button onClick={onCancel}>Cancel</Button>
+          {onCancel && <Button onClick={onCancel}>Cancel</Button>}
         </div>
       </section>
     </div>
