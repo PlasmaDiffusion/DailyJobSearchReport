@@ -18,7 +18,9 @@ type JobSearchFormProps = {
 const listFields = [
   ['companies', 'Companies'],
   ['roles', 'Job titles'],
+  ['excludedTitles', 'Title keywords to exclude'],
   ['skills', 'Key skills'],
+  ['excludedCompanies', 'Companies to exclude'],
   ['locations', 'Locations'],
 ] as const;
 
@@ -167,8 +169,9 @@ export function JobSearchForm({
         </div>
 
         <p className="form-hint">
-          Jobs shown in this tab or marked as applied within the last 30 days are excluded.
-          Strict filters may return fewer results than requested.
+          Excluded title keywords and companies are removed from results. Jobs shown in this tab
+          or marked as applied within the last 30 days are also excluded. Strict filters may return
+          fewer results than requested.
         </p>
       </fieldset>
     </section>

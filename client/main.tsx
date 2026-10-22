@@ -31,6 +31,8 @@ const blank = (): SearchConfig => ({
   roles: [],
   skills: [],
   locations: [],
+  excludedTitles: [],
+  excludedCompanies: [],
   strictCompany: false,
   strictRole: false,
   strictSkills: false,
@@ -114,6 +116,8 @@ function App() {
       roles: form.roles.filter((item) => item.trim()),
       skills: form.skills.filter((item) => item.trim()),
       locations: form.locations.filter((item) => item.trim()),
+      excludedTitles: form.excludedTitles.filter((item) => item.trim()),
+      excludedCompanies: form.excludedCompanies.filter((item) => item.trim()),
     });
   }
 

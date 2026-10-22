@@ -9,6 +9,8 @@ export const configSchema = z.object({
   roles: terms,
   skills: terms,
   locations: terms,
+  excludedTitles: terms,
+  excludedCompanies: terms,
   strictCompany: z.boolean().default(false),
   strictRole: z.boolean().default(false),
   strictSkills: z.boolean().default(false),
@@ -54,6 +56,20 @@ export function strictMatch(config: SearchConfig, _result: unknown, text: string
  return (!config.strictCompany || !config.companies.length || has(config.companies))
   && (!config.strictRole || !config.roles.length || has(config.roles))
   && (!config.strictSkills || config.skills.every((skill) => normalizedText.includes(normalize(skill))));
+}
+
+/** Reject evaluated jobs whose title or company contains an excluded phrase. */
+export function isExcluded(config: SearchConfig, result: { title: string; company: string }): boolean {
+  const containsTerm = (value: string, terms: string[]) => {
+    const normalizedValue = ` ${normalize(value)} `;
+    return terms.some((term) => {
+      const normalizedTerm = normalize(term);
+      return normalizedTerm && normalizedValue.includes(` ${normalizedTerm} `);
+    });
+  };
+
+  return containsTerm(result.title, config.excludedTitles)
+    || containsTerm(result.company, config.excludedCompanies);
 }
 
 /** Build the web search query for either job listings or news articles. */

@@ -1,7 +1,7 @@
 /** Orchestrates provider calls, progress events, filtering, and report creation. */
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { pairKey, strictMatch, configSchema, type SearchConfig } from './config.js';
+import { isExcluded, pairKey, strictMatch, configSchema, type SearchConfig } from './config.js';
 import type { Job } from '../shared/history.js';
 
 export type SearchItem = { title: string; url: string; snippet: string };
@@ -112,7 +112,9 @@ export function makeRunner(providers: RunnerProviders) {
 
       if (config.mode === 'jobs') {
         const searchableText = [result.title, result.company, text].join(' ');
-        if (!strictMatch(config, result, searchableText) || pairs.has(pairKey(result))) continue;
+        if (isExcluded(config, result)
+          || !strictMatch(config, result, searchableText)
+          || pairs.has(pairKey(result))) continue;
       }
 
       results.push(result);
