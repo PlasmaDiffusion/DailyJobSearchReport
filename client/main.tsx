@@ -169,7 +169,7 @@ function App() {
     const tabs = activeId
       ? state.tabs.map((tab) => (tab.id === id ? { ...tab, config } : tab))
       : [...state.tabs, { id, config, color: draftColor }];
-    const saved = persist({ ...state, tabs });
+    const saved = persist({ ...state, tabs, coins: state.coins + 1 });
 
     if (!saved) throw new Error('Could not save search settings');
     setActiveId(id);
@@ -251,13 +251,18 @@ function App() {
         ...state.applications.filter((application) => application.url !== result.url),
         { ...result, appliedAt: new Date().toISOString(), status },
       ];
-    persist({ ...state, applications });
+    const coinDelta = status === 'applied'
+      ? (current?.status === 'applied' ? -1 : 1)
+      : (current?.status === 'applied' ? -1 : 0);
+    const coins = state.coins + coinDelta;
+    persist({ ...state, applications, coins });
   }
 
   function removeApplication(application: Backup['applications'][number]) {
     persist({
       ...state,
       applications: state.applications.filter((item) => item.url !== application.url),
+      coins: state.coins - (application.status === 'applied' ? 1 : 0),
     });
   }
 
@@ -356,6 +361,11 @@ function App() {
           onNewTab={() => selectTab()}
         />
       </section>
+
+      <div className="coin-counter" role="status" aria-label={`${state.coins} coins`}>
+        <span className="coin-icon" aria-hidden="true">¢</span>
+        <span>{state.coins}</span>
+      </div>
 
       {confirmAction && (
         <Modal

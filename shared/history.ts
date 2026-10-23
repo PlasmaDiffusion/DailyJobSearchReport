@@ -45,6 +45,7 @@ export const backupSchema = z.object({
   tabs: z.array(tabSchema),
   reports: z.array(reportSchema),
   applications: z.array(application),
+  coins: z.number().int().default(0),
 }).superRefine((data, context) => {
   const addDuplicateIssue = (key: string, values: string[]) => {
     if (new Set(values).size !== values.length) {
@@ -72,6 +73,7 @@ export const emptyState = (): Backup => ({
   tabs: [],
   reports: [],
   applications: [],
+  coins: 0,
 });
 
 /** Merge a validated backup while keeping records already present locally. */
@@ -87,6 +89,7 @@ export function mergeBackup(current: Backup, incoming: unknown): Backup {
     tabs: merge(current.tabs, parsed.tabs, (item) => item.id),
     reports: merge(current.reports, parsed.reports, (item) => item.id),
     applications: merge(current.applications, parsed.applications, (item) => item.url),
+    coins: Math.max(current.coins, parsed.coins),
   });
 }
 

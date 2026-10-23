@@ -551,6 +551,39 @@ a:focus-visible {
   background: linear-gradient(#f6d000, #d4aa00);
 }
 
+.coin-counter {
+  position: fixed;
+  z-index: 5;
+  right: 14px;
+  bottom: 12px;
+  display: flex;
+  min-width: 72px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid #765000;
+  border-radius: 999px;
+  background: linear-gradient(#ffe46b, #e9ad16);
+  color: #332100;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
+  font-size: 14px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.coin-icon {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid #9a6b00;
+  border-radius: 50%;
+  background: #ffdb55;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .modal-backdrop {
   position: fixed;
   z-index: 10;
