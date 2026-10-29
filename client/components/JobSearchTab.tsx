@@ -1,4 +1,5 @@
 import type { Backup } from '../../shared/history.js';
+import { themeFor } from '../../shared/themes.js';
 
 type SearchTab = Backup['tabs'][number];
 
@@ -13,7 +14,7 @@ export function JobSearchTab({ tab, active, onSelect }: JobSearchTabProps) {
     <button
       className={`search-tab${active ? ' search-tab--active' : ''}`}
       type="button"
-      style={{ '--tab-color': tab.color } as React.CSSProperties}
+      style={{ '--tab-color': tab.color.startsWith('#') ? tab.color : themeFor(tab.color).color, '--tab-text': themeFor(tab.color).text } as React.CSSProperties}
       aria-current={active ? 'page' : undefined}
       onClick={() => onSelect(tab)}
     >

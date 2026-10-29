@@ -10,6 +10,7 @@ const url = z.url().refine(
   'Only HTTP(S) links are allowed',
 );
 const text = z.string().max(30000);
+const tabTheme = z.string().regex(/^(#[\da-f]{6}|[a-z-]+)$/i).default('yellow');
 
 export const jobSchema = z.object({
   title: text,
@@ -38,7 +39,7 @@ export const reportSchema = z.object({
 const tabSchema = z.object({
   id: z.uuid(),
   config: configSchema,
-  color: z.string().regex(/^#[\da-f]{6}$/i).default('#ff5056'),
+  color: tabTheme,
 });
 export const backupSchema = z.object({
   version: z.literal(2),
@@ -46,6 +47,8 @@ export const backupSchema = z.object({
   reports: z.array(reportSchema),
   applications: z.array(application),
   coins: z.number().int().default(0),
+  unlockedThemes: z.array(z.string()).default([]),
+  customPickerUnlocked: z.boolean().default(false),
 }).superRefine((data, context) => {
   const addDuplicateIssue = (key: string, values: string[]) => {
     if (new Set(values).size !== values.length) {
@@ -74,6 +77,8 @@ export const emptyState = (): Backup => ({
   reports: [],
   applications: [],
   coins: 0,
+  unlockedThemes: ['yellow', 'orange', 'red'],
+  customPickerUnlocked: false,
 });
 
 /** Merge a validated backup while keeping records already present locally. */
@@ -90,6 +95,8 @@ export function mergeBackup(current: Backup, incoming: unknown): Backup {
     reports: merge(current.reports, parsed.reports, (item) => item.id),
     applications: merge(current.applications, parsed.applications, (item) => item.url),
     coins: Math.max(current.coins, parsed.coins),
+    unlockedThemes: [...new Set([...current.unlockedThemes, ...parsed.unlockedThemes])],
+    customPickerUnlocked: current.customPickerUnlocked || parsed.customPickerUnlocked,
   });
 }
 

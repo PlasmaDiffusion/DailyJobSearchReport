@@ -19,7 +19,7 @@ import { JobSearchForm } from './components/JobSearchForm.js';
 import { JobSearchReport } from './components/JobSearchReport.js';
 import { JobSearchTabsRow } from './components/JobSearchTabsRow.js';
 import { Button } from './components/common/Button.js';
-import { DEFAULT_PICKER_COLOR } from './components/common/ColorPicker.js';
+import { DEFAULT_THEME, themeFor } from '../shared/themes.js';
 import { Modal } from './components/common/Modal.js';
 import { search } from './search.js';
 import './style.css';
@@ -49,7 +49,7 @@ function App() {
   const [notice, setNotice] = useState('');
   const [progress, setProgress] = useState<{ message: string; current?: number; total?: number }>();
   const [usage, setUsage] = useState(0);
-  const [draftColor, setDraftColor] = useState(DEFAULT_PICKER_COLOR);
+  const [draftColor, setDraftColor] = useState(DEFAULT_THEME.id);
   const [confirmAction, setConfirmAction] = useState<'prune' | 'remove-tab'>();
   const [showApplications, setShowApplications] = useState(false);
   const [unsaved, setUnsaved] = useState<Report>();
@@ -74,7 +74,7 @@ function App() {
       setState(initial);
       setActiveId(initial.tabs[0]?.id);
       setForm(initial.tabs[0]?.config || blank());
-      setDraftColor(initial.tabs[0]?.color || DEFAULT_PICKER_COLOR);
+      setDraftColor(initial.tabs[0]?.color || DEFAULT_THEME.id);
     } catch {
       setNotice('Saved browser data could not be read. Import a valid backup to recover your data.');
     }
@@ -124,7 +124,7 @@ function App() {
   function selectTab(tab?: Backup['tabs'][number]) {
     setActiveId(tab?.id);
     setForm(tab?.config || blank());
-    setDraftColor(tab?.color || DEFAULT_PICKER_COLOR);
+    setDraftColor(tab?.color || DEFAULT_THEME.id);
     setProgress(undefined);
     setNotice('');
     setUnsaved(undefined);
@@ -276,6 +276,18 @@ function App() {
     persist({ ...state, tabs });
   }
 
+  function unlockTheme(id: string, cost: number) {
+    if (state.unlockedThemes.includes(id) || state.coins < cost) return;
+    const tabs = state.tabs.map((tab) => tab.id === activeId ? { ...tab, color: id } : tab);
+    const saved = persist({ ...state, tabs, coins: state.coins - cost, unlockedThemes: [...state.unlockedThemes, id] });
+    if (saved) setDraftColor(id);
+  }
+
+  function unlockCustomPicker() {
+    if (state.customPickerUnlocked || state.coins < 300) return;
+    persist({ ...state, coins: state.coins - 300, customPickerUnlocked: true });
+  }
+
   function confirmDelete() {
     if (confirmAction === 'prune') {
       persist(pruneReports(state));
@@ -291,6 +303,7 @@ function App() {
   }
 
   const activeTab = state.tabs.find((tab) => tab.id === activeId);
+  const currentTheme = themeFor(draftColor);
   const reports = [
     ...state.reports.filter((report) => report.tabId === activeId),
     ...(unsaved ? [unsaved] : []),
@@ -302,7 +315,7 @@ function App() {
   return (
     <main
       className="app-shell"
-      style={{ '--workspace-accent': draftColor } as React.CSSProperties}
+      style={{ '--workspace-accent': draftColor.startsWith('#') ? draftColor : currentTheme.color, '--workspace-text': currentTheme.text, '--primary-button': currentTheme.color, '--primary-button-text': currentTheme.text } as React.CSSProperties}
     >
       <section className="workspace-frame">
         <header className="workspace-toolbar">
@@ -343,6 +356,12 @@ function App() {
             onSearch={runSearch}
             accentColor={draftColor}
             onAccentColorChange={updateTabColor}
+            unlockedThemes={state.unlockedThemes}
+            coins={state.coins}
+            customPickerUnlocked={state.customPickerUnlocked}
+            onUnlockTheme={unlockTheme}
+            onUnlockCustom={unlockCustomPicker}
+            onCustomColor={updateTabColor}
             onDeleteTab={activeId ? () => setConfirmAction('remove-tab') : undefined}
           />
           <JobSearchReport
