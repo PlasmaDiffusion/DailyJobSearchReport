@@ -13,6 +13,7 @@ import {
   recentHistory,
 } from '../shared/history.js';
 import type { Backup, Report } from '../shared/history.js';
+import { Advice } from './components/Advice.js';
 import { BackupActions } from './components/BackupActions.js';
 import { ApplicationHistory } from './components/ApplicationHistory.js';
 import { JobSearchForm } from './components/JobSearchForm.js';
@@ -22,6 +23,7 @@ import { Button } from './components/common/Button.js';
 import { DEFAULT_THEME, themeFor } from '../shared/themes.js';
 import { Modal } from './components/common/Modal.js';
 import { search } from './search.js';
+import { markSearchDay, readActivityDates, streakLength } from './streak.js';
 import './style.css';
 
 const blank = (): SearchConfig => ({
@@ -40,6 +42,7 @@ const blank = (): SearchConfig => ({
   prompt: '',
   limit: 10,
 });
+
 function App() {
   const [state, setState] = useState<Backup>(emptyState());
   const [activeId, setActiveId] = useState<string>();
@@ -53,6 +56,7 @@ function App() {
   const [confirmAction, setConfirmAction] = useState<'prune' | 'remove-tab'>();
   const [showApplications, setShowApplications] = useState(false);
   const [unsaved, setUnsaved] = useState<Report>();
+  const [activityDates, setActivityDates] = useState<string[]>([]);
   const abort = useRef<AbortController | undefined>(undefined);
 
   function updateUsage() {
@@ -71,6 +75,7 @@ function App() {
   useEffect(() => {
     try {
       const initial = loadState(localStorage);
+      setActivityDates(readActivityDates());
       setState(initial);
       setActiveId(initial.tabs[0]?.id);
       setForm(initial.tabs[0]?.config || blank());
@@ -169,7 +174,15 @@ function App() {
     const tabs = activeId
       ? state.tabs.map((tab) => (tab.id === id ? { ...tab, config } : tab))
       : [...state.tabs, { id, config, color: draftColor }];
-    const saved = persist({ ...state, tabs, coins: state.coins + 1 });
+    let reward = 1;
+    try {
+      const activity = markSearchDay();
+      setActivityDates(activity.dates);
+      if (activity.streak >= 4) reward = 2;
+    } catch {
+      // Keep the base coin reward if activity tracking is unavailable.
+    }
+    const saved = persist({ ...state, tabs, coins: state.coins + reward });
 
     if (!saved) throw new Error('Could not save search settings');
     setActiveId(id);
@@ -251,8 +264,18 @@ function App() {
         ...state.applications.filter((application) => application.url !== result.url),
         { ...result, appliedAt: new Date().toISOString(), status },
       ];
+    let reward = 1;
+    if (status === 'applied' && current?.status !== 'applied') {
+      try {
+        const activity = markSearchDay();
+        setActivityDates(activity.dates);
+        if (activity.streak >= 4) reward = 2;
+      } catch {
+        // Keep the base coin reward if activity tracking is unavailable.
+      }
+    }
     const coinDelta = status === 'applied'
-      ? (current?.status === 'applied' ? -1 : 1)
+      ? (current?.status === 'applied' ? -1 : reward)
       : (current?.status === 'applied' ? -1 : 0);
     const coins = state.coins + coinDelta;
     persist({ ...state, applications, coins });
@@ -378,9 +401,14 @@ function App() {
           disabled={busy || !ready}
           onSelect={selectTab}
           onNewTab={() => selectTab()}
+          currentStreak={streakLength(activityDates)}
         />
       </section>
 
+      <Advice
+        coins={state.coins}
+        onSpendCoin={() => Boolean(persist({ ...state, coins: state.coins - 1 }))}
+      />
       <div className="coin-counter" role="status" aria-label={`${state.coins} coins`}>
         <span className="coin-icon" aria-hidden="true">¢</span>
         <span>{state.coins}</span>

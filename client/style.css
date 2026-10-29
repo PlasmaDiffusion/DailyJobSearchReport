@@ -556,6 +556,18 @@ a:focus-visible {
   white-space: nowrap;
 }
 
+.streak-counter {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 16px;
+  color: var(--tab-text, #101010);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: help;
+}
+
 .search-tab {
   background: linear-gradient(
     to bottom,
@@ -594,6 +606,34 @@ a:focus-visible {
   font-size: 14px;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
+}
+
+.wellbeing-button {
+  position: fixed;
+  z-index: 5;
+  right: 106px;
+  bottom: 12px;
+  display: flex;
+  min-width: 48px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: 1px solid #684545;
+  border-radius: 999px;
+  background: linear-gradient(#fff2ed, #e8c9c2);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.wellbeing-button:hover {
+  filter: brightness(1.06);
+}
+
+.wellbeing-button:focus-visible {
+  outline: 3px solid #4b78d1;
+  outline-offset: 2px;
 }
 
 .coin-icon {
