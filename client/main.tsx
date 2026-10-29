@@ -24,6 +24,7 @@ import { DEFAULT_THEME, themeFor } from '../shared/themes.js';
 import { Modal } from './components/common/Modal.js';
 import { search } from './search.js';
 import { markSearchDay, readActivityDates, streakLength } from './streak.js';
+import { selectTheme, unlockCustomPicker as createCustomPickerUnlock, unlockTheme as createThemeUnlock } from './theme.js';
 import './style.css';
 
 const blank = (): SearchConfig => ({
@@ -292,23 +293,19 @@ function App() {
   function updateTabColor(color: string) {
     setDraftColor(color);
     if (!activeId) return;
-
-    const tabs = state.tabs.map((tab) => (
-      tab.id === activeId ? { ...tab, color } : tab
-    ));
-    persist({ ...state, tabs });
+    persist(selectTheme(state, activeId, color));
   }
 
   function unlockTheme(id: string, cost: number) {
-    if (state.unlockedThemes.includes(id) || state.coins < cost) return;
-    const tabs = state.tabs.map((tab) => tab.id === activeId ? { ...tab, color: id } : tab);
-    const saved = persist({ ...state, tabs, coins: state.coins - cost, unlockedThemes: [...state.unlockedThemes, id] });
+    const next = createThemeUnlock(state, activeId, id, cost);
+    if (!next) return;
+    const saved = persist(next);
     if (saved) setDraftColor(id);
   }
 
   function unlockCustomPicker() {
-    if (state.customPickerUnlocked || state.coins < 300) return;
-    persist({ ...state, coins: state.coins - 300, customPickerUnlocked: true });
+    const next = createCustomPickerUnlock(state);
+    if (next) persist(next);
   }
 
   function confirmDelete() {

@@ -60,7 +60,7 @@ export function Advice({ coins, onSpendCoin }: AdviceProps) {
         title="Job search encouragement — 1 coin"
         onClick={() => setModal('offer')}
       >
-        <span aria-hidden="true">🧠</span><span aria-hidden="true">💚</span>
+        <span aria-hidden="true">🧠</span><span aria-hidden="true">🩷</span>
       </button>
 
       {modal === 'offer' && (

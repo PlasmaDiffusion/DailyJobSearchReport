@@ -621,7 +621,7 @@ a:focus-visible {
   gap: 1px;
   border: 1px solid #684545;
   border-radius: 999px;
-  background: linear-gradient(#fff2ed, #e8c9c2);
+  background: linear-gradient(#faaffb, #e8c9c2);
   box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
   cursor: pointer;
   font-size: 18px;
