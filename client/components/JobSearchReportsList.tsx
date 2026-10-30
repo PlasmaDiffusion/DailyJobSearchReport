@@ -1,4 +1,5 @@
 import type { Report } from '../../shared/history.js';
+import { useState } from 'react';
 
 type JobSearchReportsListProps = {
   reports: Report[];
@@ -15,6 +16,8 @@ export function JobSearchReportsList({
   onSetApplicationStatus,
   onRemoveReport,
 }: JobSearchReportsListProps) {
+  const [expandedByReport, setExpandedByReport] = useState<Record<string, boolean>>({});
+
   if (!reports.length) {
     return (
       <div className="report-empty-state">
@@ -27,16 +30,33 @@ export function JobSearchReportsList({
 
   return (
     <div className="reports-scroll-area">
-      {reports.map((report) => (
+      {reports.map((report) => {
+        const reportDate = new Date(report.createdAt);
+        const today = new Date();
+        const isToday = reportDate.getFullYear() === today.getFullYear()
+          && reportDate.getMonth() === today.getMonth()
+          && reportDate.getDate() === today.getDate();
+        const expanded = expandedByReport[report.id] ?? isToday;
+
+        return (
         <section className="report-results" key={report.id}>
           <div className="report-meta">
-            <p className="report-date">{new Date(report.createdAt).toLocaleString()}</p>
+            <button
+              className="report-date-toggle"
+              type="button"
+              aria-expanded={expanded}
+              onClick={() => setExpandedByReport((current) => ({ ...current, [report.id]: !expanded }))}
+            >
+              <span className={`report-date-chevron${expanded ? ' report-date-chevron--open' : ''}`} aria-hidden="true">▸</span>
+              <span className="report-date">{reportDate.toLocaleString()}</span>
+            </button>
             {activeMode === 'news' && onRemoveReport && (
               <button className="text-action" type="button" onClick={() => onRemoveReport(report)}>
                 Remove report
               </button>
             )}
           </div>
+          {expanded && <div className="report-content">
           {report.warnings.map((warning, index) => (
             <p className="report-warning" key={`${report.id}-${index}`}>{warning}</p>
           ))}
@@ -78,8 +98,10 @@ export function JobSearchReportsList({
               )}
             </article>
           ))}
+          </div>}
         </section>
-      ))}
+        );
+      })}
     </div>
   );
 }
