@@ -60,6 +60,18 @@ function App() {
   const [activityDates, setActivityDates] = useState<string[]>([]);
   const abort = useRef<AbortController | undefined>(undefined);
 
+  function googleSearchUrl(config: SearchConfig) {
+    const terms = (values: string[]) => values.map((value) => value.trim()).filter(Boolean);
+    const alternatives = (values: string[]) => {
+      const cleaned = terms(values);
+      return cleaned.length > 1 ? `(${cleaned.map((value) => `"${value.replaceAll('"', '\\"')}"`).join(' OR ')})` : cleaned[0] ? `"${cleaned[0].replaceAll('"', '\\"')}"` : '';
+    };
+    const query = config.mode === 'jobs'
+      ? [alternatives(config.roles), alternatives(config.companies), alternatives(config.skills), alternatives(config.locations), ...terms(config.excludedTitles).map((value) => `-"${value.replaceAll('"', '\\"')}"`), ...terms(config.excludedCompanies).map((value) => `-"${value.replaceAll('"', '\\"')}"`)].filter(Boolean).join(' ')
+      : config.prompt.trim();
+    return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  }
+
   function updateUsage() {
     try {
       let bytes = 0;
@@ -352,6 +364,9 @@ function App() {
             <span>DAILY JOB SEARCH</span>
             <strong>REPORT</strong>
           </div>
+          <a className="google-search-button" href={googleSearchUrl(form)} target="_blank" rel="noreferrer" aria-label="Search Google using the current tab settings">
+            Google Search ↗
+          </a>
           <BackupActions
             usageBytes={usage}
             busy={busy}
