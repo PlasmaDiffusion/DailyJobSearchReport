@@ -6,9 +6,10 @@ type JobSearchReportProps = {
   mode?: 'jobs' | 'news';
   applicationStatusByUrl: Map<string, 'applied' | 'ignored'>;
   onSetApplicationStatus: (result: Report['results'][number], status: 'applied' | 'ignored') => void;
+  onRemoveReport?: (report: Report) => void;
 };
 
-export function JobSearchReport({ reports, mode, applicationStatusByUrl, onSetApplicationStatus }: JobSearchReportProps) {
+export function JobSearchReport({ reports, mode, applicationStatusByUrl, onSetApplicationStatus, onRemoveReport }: JobSearchReportProps) {
   return (
     <section className="job-report-panel" aria-label="Job search report">
       <div className="report-panel-heading">
@@ -22,6 +23,7 @@ export function JobSearchReport({ reports, mode, applicationStatusByUrl, onSetAp
         activeMode={mode}
         applicationStatusByUrl={applicationStatusByUrl}
         onSetApplicationStatus={onSetApplicationStatus}
+        onRemoveReport={onRemoveReport}
       />
     </section>
   );

@@ -26,7 +26,9 @@ function requireEnv(...keys: string[]): void {
 }
 
 const evaluation = z.object({
-  title: z.string().min(1),
+  // News summaries do not always have a clean title in the article body.
+  // Fall back to the search result title after parsing the model response.
+  title: z.string(),
   company: z.string(),
   summary: z.string(),
   fitScore: z.number().int().min(0).max(100).nullable(),
@@ -185,6 +187,10 @@ export const providers = {
 
     const message = result.choices?.[0]?.message;
     if (message?.refusal) throw new Error('Evaluation refused');
-    return evaluation.parse(JSON.parse(message?.content || ''));
+    const parsed = evaluation.parse(JSON.parse(message?.content || ''));
+    return {
+      ...parsed,
+      title: parsed.title.trim() || item.title.trim() || new URL(item.url).hostname,
+    };
   },
 };

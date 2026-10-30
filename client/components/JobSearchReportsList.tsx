@@ -5,6 +5,7 @@ type JobSearchReportsListProps = {
   activeMode?: 'jobs' | 'news';
   applicationStatusByUrl: Map<string, 'applied' | 'ignored'>;
   onSetApplicationStatus: (result: Report['results'][number], status: 'applied' | 'ignored') => void;
+  onRemoveReport?: (report: Report) => void;
 };
 
 export function JobSearchReportsList({
@@ -12,6 +13,7 @@ export function JobSearchReportsList({
   activeMode,
   applicationStatusByUrl,
   onSetApplicationStatus,
+  onRemoveReport,
 }: JobSearchReportsListProps) {
   if (!reports.length) {
     return (
@@ -27,7 +29,14 @@ export function JobSearchReportsList({
     <div className="reports-scroll-area">
       {reports.map((report) => (
         <section className="report-results" key={report.id}>
-          <p className="report-date">{new Date(report.createdAt).toLocaleString()}</p>
+          <div className="report-meta">
+            <p className="report-date">{new Date(report.createdAt).toLocaleString()}</p>
+            {activeMode === 'news' && onRemoveReport && (
+              <button className="text-action" type="button" onClick={() => onRemoveReport(report)}>
+                Remove report
+              </button>
+            )}
+          </div>
           {report.warnings.map((warning, index) => (
             <p className="report-warning" key={`${report.id}-${index}`}>{warning}</p>
           ))}

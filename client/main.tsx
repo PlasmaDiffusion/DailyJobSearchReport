@@ -282,6 +282,14 @@ function App() {
     persist({ ...state, applications, coins });
   }
 
+  function removeReport(report: Report) {
+    const saved = persist({
+      ...state,
+      reports: state.reports.filter((item) => item.id !== report.id),
+    });
+    if (saved && unsaved?.id === report.id) setUnsaved(undefined);
+  }
+
   function removeApplication(application: Backup['applications'][number]) {
     persist({
       ...state,
@@ -389,6 +397,7 @@ function App() {
             mode={activeTab?.config.mode || form.mode}
             applicationStatusByUrl={applicationStatusByUrl}
             onSetApplicationStatus={setApplicationStatus}
+            onRemoveReport={removeReport}
           />
         </div>
 

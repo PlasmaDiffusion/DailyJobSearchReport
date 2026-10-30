@@ -427,6 +427,13 @@ a:focus-visible {
   font-size: 10px;
 }
 
+.report-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .job-result {
   padding: 9px 0 11px;
   border-bottom: 1px solid rgb(48 20 20 / 45%);
